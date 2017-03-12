@@ -1,0 +1,67 @@
+apply plugin: "java"
+
+sourceCompatibility = 1.6
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+sourceSets.main.java.srcDirs = [ "src/main/java/" ]
+
+eclipse.project {
+    name = appName + "-core"
+}
+
+task sourceJar(type: Jar, dependsOn: classes) {
+    from sourceSets.main.java.srcDirs
+    classifier "sources"
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+def pomConfig = {
+    licenses {
+        license {
+            name "The Apache Software License, Version 2.0"
+            url "http://www.apache.org/licenses/LICENSE-2.0.txt"
+            distribution "repo"
+        }
+    }
+    developers {
+        developer {
+            id "fxzjshm"
+            name "fxzjshm"
+            email "364467005@qq.com"
+        }
+    }
+}
+
+publishing {
+	publications {
+		CorePublication(MavenPublication) {
+			from components.java
+			artifact sourceJar
+            artifact javadocJar
+			groupId GROUPID
+            artifactId APPNAME+"-core"
+            version VERSION
+			pom.withXml {
+                def root = asNode()
+                root.appendNode('description', 'A runtime library to read svg file and convert it into a Pixmap in libGDX.')
+                root.appendNode('name', APPNAME+'-core')
+                root.appendNode('url', 'https://github.com/fxzjshm/gdx-svg2pixmap')
+                root.children().last() + pomConfig
+            }
+		}
+	}
+	repositories {
+        mavenLocal()
+		maven {
+        url 'https://oss.sonatype.org/content/repositories/snapshots/'
+        credentials {
+            username 'fxzjshm'
+            password System.getenv('OSS_SONATYPE_KEY')
+        }
+        }
+    }
+}

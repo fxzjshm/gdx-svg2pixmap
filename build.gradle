@@ -1,0 +1,74 @@
+ext {
+    APPNAME = "gdx-svg2pixmap"
+	GROUPID = 'io.github.fxzjshm.gdx.svg2pixmap'
+	VERSION = '0.0.1-SNAPSHOT'
+}
+
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+        jcenter()
+    }
+    dependencies {
+	    classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
+    }
+}
+
+tasks.withType(Jar) {
+    from(project.projectDir) {
+        include 'LICENSE.md'
+        into 'META-INF'
+    }
+}
+
+allprojects {
+    apply plugin: "eclipse"
+    apply plugin: "idea"
+	apply plugin: 'maven'
+	apply plugin: 'maven-publish'
+	apply plugin: 'java'
+	apply plugin: 'com.jfrog.bintray'
+
+    version = VERSION
+    ext {
+        appName = APPNAME
+        gdxVersion = '1.9.6'
+    }
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+        maven { url "https://oss.sonatype.org/content/repositories/releases/" }
+    }
+}
+
+project(":core") {
+    apply plugin: "java"
+
+    dependencies {
+        compile "com.badlogicgames.gdx:gdx:$gdxVersion"
+    }
+	
+	bintray {
+	user = 'fxzjshm'
+	key = System.getenv('BINTRAY_KEY')
+	publications = ['CorePublication']
+	publish = true
+	pkg {
+		repo = 'maven'
+		name = APPNAME
+		licenses = ['Apache-2.0']
+		vcsUrl = 'https://github.com/fxzjshm/gdx-svg2pixmap.git'
+		version {
+			name = VERSION
+		}
+	}
+    }
+}
+
+tasks.eclipse.doLast {
+    delete ".project"
+}
