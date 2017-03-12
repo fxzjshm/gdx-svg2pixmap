@@ -13,7 +13,7 @@ cache:
     - $HOME/.gradle/wrapper/
 
 install:
-  - ./gradlew buildEnvironment
+  - chmod -R 777 . && ./gradlew buildEnvironment
 
 script:
-  - ./gradlew test
+  - chmod -R 777 . && ./gradlew test

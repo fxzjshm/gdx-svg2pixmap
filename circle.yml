@@ -6,10 +6,10 @@ dependencies:
     - "/home/ubuntu/.gradle/caches"
     - "/home/ubuntu/.gradle/wrapper"
   override:
-    - ./gradlew buildEnvironment
+    - chmod -R 777 . && ./gradlew buildEnvironment
 test:
   override:
-    - ./gradlew test && ./gradlew core:publish
+    - chmod -R 777 . && ./gradlew test && ./gradlew core:publish
   post:
     - mkdir -p $CIRCLE_TEST_REPORTS/junit/
     - find . -type f -regex ".*/build/test-results/.*xml" -exec cp {} $CIRCLE_TEST_REPORTS/junit/ \;
