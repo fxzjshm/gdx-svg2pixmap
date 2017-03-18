@@ -5,7 +5,6 @@ import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.StringBuilder;
 
-import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -32,6 +31,8 @@ public class Svg2Pixmap {
 
         Vector2 currentPosition = new Vector2(0, 0);// Current position. Used by commands.
         Vector2 initialPoint = new Vector2(0, 0);// Current position. Used by command 'M'.
+        Vector2 lastCPoint = null; // Last control point of last 'C' or 'S' command.
+        Vector2 lastQPoint = null; // Last control point of last 'Q' or 'T' command.
 
         char lastCommand = 0; // Last command.
         LinkedList<String> params = new LinkedList<String>(); // Real parameters.
@@ -72,25 +73,74 @@ public class Svg2Pixmap {
                 H.curveTo(pixmap, new Vector2[]{currentPosition, initialPoint}, stroke, (int) Math.round(strokeWidth));
             }
             if (newCommand == 'L') {
-                double x = currentPosition.x, y = currentPosition.y, x2 = Double.valueOf(params.get(0)) / width * pixmap.getWidth(), y2 = Double.valueOf(params.get(1)) / height * pixmap.getHeight();
-                // 'L' implement #1
-                /*
-                pixmap.setColor(stroke);
-                double l = Math.sqrt((x2 - x) * (x2 - x) + (y2 - y) * (y2 - y)), sinA = (y2 - y) / l, cosA = (x2 - x) / l;
-                for (long i = Math.round(-strokeWidth / 2); i < strokeWidth / 2; i++) {
-                    double dX = i / sinA, dY = i / cosA;
-                    pixmap.setColor(stroke);
-                    pixmap.drawLine((int) Math.round(x + dX), (int) Math.round(y + dY), (int) Math.round(x2 + dX), (int) Math.round(y2 + dY));
-                }
-                */
-
-                //#2 Bezier curve
+                double x2 = Double.valueOf(params.get(0)) / width * pixmap.getWidth(), y2 = Double.valueOf(params.get(1)) / height * pixmap.getHeight();
                 H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2((float) x2, (float) y2)}, stroke, (int) Math.round(strokeWidth));
 
                 currentPosition.x = (float) x2;
                 currentPosition.y = (float) y2;
             }
+            if (newCommand == 'H') {
+                double x2 = Double.valueOf(params.get(0)) / width * pixmap.getWidth();
+                H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2((float) x2, currentPosition.y)}, stroke, (int) Math.round(strokeWidth));
 
+                currentPosition.x = (float) x2;
+            }
+            if (newCommand == 'V') {
+                double y2 = Double.valueOf(params.get(0)) / height * pixmap.getHeight();
+                H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2(currentPosition.x, (float) y2)}, stroke, (int) Math.round(strokeWidth));
+
+                currentPosition.y = (float) y2;
+            }
+            if (newCommand == 'C') {
+                double x1 = Double.valueOf(params.get(0)) / width * pixmap.getWidth(), y1 = Double.valueOf(params.get(1)) / height * pixmap.getHeight();
+                double x2 = Double.valueOf(params.get(2)) / width * pixmap.getWidth(), y2 = Double.valueOf(params.get(3)) / height * pixmap.getHeight();
+                double x = Double.valueOf(params.get(4)) / width * pixmap.getWidth(), y = Double.valueOf(params.get(5)) / height * pixmap.getHeight();
+                lastCPoint = new Vector2((float) x2, (float) y2);
+                H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2((float) x1, (float) y1), lastCPoint, new Vector2((float) x, (float) y)}, stroke, (int) Math.round(strokeWidth));
+
+                currentPosition.x = (float) x;
+                currentPosition.y = (float) y;
+            }
+            if (newCommand == 'S') {
+                double x2 = Double.valueOf(params.get(0)) / width * pixmap.getWidth(), y2 = Double.valueOf(params.get(1)) / height * pixmap.getHeight();
+                double x = Double.valueOf(params.get(2)) / width * pixmap.getWidth(), y = Double.valueOf(params.get(3)) / height * pixmap.getHeight();
+                double x1, y1;
+                if (lastCPoint != null) {
+                    x1 = 2 * currentPosition.x - lastCPoint.x;
+                    y1 = 2 * currentPosition.y - lastCPoint.y;
+                } else {
+                    x1 = x2;
+                    y1 = y2;
+                }
+                lastCPoint = new Vector2((float) x2, (float) y2);
+                H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2((float) x1, (float) y1), lastCPoint, new Vector2((float) x, (float) y)}, stroke, (int) Math.round(strokeWidth));
+            }
+            if (newCommand == 'Q') {
+                double x1 = Double.valueOf(params.get(0)) / width * pixmap.getWidth(), y1 = Double.valueOf(params.get(1)) / height * pixmap.getHeight();
+                double x = Double.valueOf(params.get(2)) / width * pixmap.getWidth(), y = Double.valueOf(params.get(3)) / height * pixmap.getHeight();
+                lastQPoint = new Vector2((float) x1, (float) y1);
+                H.curveTo(pixmap, new Vector2[]{currentPosition, lastQPoint, new Vector2((float) x, (float) y)}, stroke, (int) Math.round(strokeWidth));
+
+                currentPosition.x = (float) x;
+                currentPosition.y = (float) y;
+            }
+            if (newCommand == 'T') {
+                double x = Double.valueOf(params.get(0)) / width * pixmap.getWidth(), y = Double.valueOf(params.get(1)) / height * pixmap.getHeight();
+                double x1, y1;
+                if (lastCPoint != null) {
+                    x1 = 2 * currentPosition.x - lastQPoint.x;
+                    y1 = 2 * currentPosition.y - lastQPoint.y;
+                } else {
+                    x1 = x;
+                    y1 = y;
+                }
+                lastQPoint = new Vector2((float) x1, (float) y1);
+                H.curveTo(pixmap, new Vector2[]{currentPosition, lastCPoint, new Vector2((float) x, (float) y)}, stroke, (int) Math.round(strokeWidth));
+            }
+
+            // Clear useless control points
+            if (newCommand != 'Q') lastQPoint = null;
+            if (newCommand != 'C') lastCPoint = null;
 
             params.clear();
         }
