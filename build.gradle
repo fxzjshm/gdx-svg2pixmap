@@ -54,6 +54,9 @@ project(":core") {
         testCompile "junit:junit:4.12"
         testCompile "com.badlogicgames.gdx:gdx-backend-lwjgl:$gdxVersion"
         testCompile "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+        testCompile "org.apache.xmlgraphics:batik-transcoder:1.8"
+        testCompile "org.apache.xmlgraphics:xmlgraphics-commons:2.1"
+        testCompile "org.apache.xmlgraphics:batik-codec:1.8"
     }
 	
 	bintray {

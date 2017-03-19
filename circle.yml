@@ -6,7 +6,7 @@ dependencies:
     - "/home/ubuntu/.gradle/caches"
     - "/home/ubuntu/.gradle/wrapper"
   override:
-    - chmod -R 777 . && ./gradlew buildEnvironment
+    - chmod -R 777 . && git submodule update --init && ./gradlew buildEnvironment
 test:
   override:
     - chmod -R 777 . && ./gradlew test && ./gradlew core:publish

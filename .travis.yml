@@ -13,7 +13,7 @@ cache:
     - $HOME/.gradle/wrapper/
 
 install:
-  - chmod -R 777 . && ./gradlew buildEnvironment
+  - chmod -R 777 . && git submodule update --init && ./gradlew buildEnvironment
 
 script:
   - chmod -R 777 . && ./gradlew test
