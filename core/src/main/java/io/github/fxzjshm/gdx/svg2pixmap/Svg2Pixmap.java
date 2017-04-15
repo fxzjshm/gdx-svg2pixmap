@@ -1,11 +1,14 @@
 package io.github.fxzjshm.gdx.svg2pixmap;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.utils.StringBuilder;
 import com.badlogic.gdx.utils.XmlReader;
 
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -164,42 +167,237 @@ public class Svg2Pixmap {
         return pixmap;
     }
 
+    /**
+     * Parse a SVG file to a Pixmap.
+     *
+     * @param fileContent SVG file
+     * @param width       The width to Pixmap.
+     * @param height      The height of Pixmap.
+     */
+    public static Pixmap svg2Pixmap(String fileContent, int width, int height) {
+        XmlReader reader = new XmlReader();
+        XmlReader.Element root = reader.parse(fileContent);
+        double strokeWidth = -1;
+
+        Pixmap pixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888);
+        for (int i = 0; i < root.getChildCount(); i++) {
+            XmlReader.Element child = root.getChild(i);
+            try {
+                if (child.getName().equals("path"))
+                    path(child, pixmap);
+                else if (child.getName().equals("circle"))
+                    circle(child, pixmap);
+            } catch (Exception e) { //TODO Dangerous here !!!
+                Gdx.app.debug("Svg2Pixmap", "File:\n" + fileContent, e);
+            }
+        }
+        return pixmap;
+    }
+
     public static Pixmap svg2Pixmap(String fileContent) {
         XmlReader reader = new XmlReader();
         XmlReader.Element root = reader.parse(fileContent);
         int width = Integer.valueOf(root.getAttribute("width"));
         int height = Integer.valueOf(root.getAttribute("height"));
-        Color fill = null, stroke = null;
-        double strokeWidth = -1;
-        try {
-            fill = Color.valueOf(root.getAttribute("fill")); //TODO parse color
-        } catch (RuntimeException ignored) {
-        }
-        try {
-            stroke = Color.valueOf(root.getAttribute("stroke")); //TODO parse color
-        } catch (RuntimeException ignored) {
-        }
-        try {
-            strokeWidth = H.svgReadDouble(root.getAttribute("strokeWidth"), Math.sqrt(width * width + height * height));
-        } catch (RuntimeException ignored) {
-        }
+        return svg2Pixmap(fileContent, width, height);
+    }
 
-        Pixmap pixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888);
-        XmlReader.Element[] children = root.getChildrenByName("path").toArray(XmlReader.Element.class);
-        for (XmlReader.Element child : children) {
-            try {
-                if (child.getName().equals("path"))
-                    path2Pixmap(width, height, child.getAttribute("d"), fill == null ? Color.valueOf(child.getAttribute("fill")) : fill, stroke == null ? Color.valueOf(child.getAttribute("stroke")) : stroke, strokeWidth == -1 ? H.svgReadDouble(root.getAttribute("strokeWidth"), Math.sqrt(width * width + height * height)) : strokeWidth, pixmap);
-            }catch (Exception ignored){ //TODO Dangerous here !!!
-            }
+    public static void path(XmlReader.Element element, Pixmap pixmap) {
+        int width = Integer.valueOf(H.getAttribute(element, "width"));
+        int height = Integer.valueOf(H.getAttribute(element, "height"));
+        Color fill = Color.BLACK, stroke = Color.BLACK;
+        try {
+            fill = H.svgReadColor(H.getAttribute(element, "fill"), fill);
+        } catch (NullPointerException ignored) {
         }
-        return pixmap;
+        try {
+            stroke = H.svgReadColor(H.getAttribute(element, "stroke"), stroke);
+        } catch (NullPointerException ignored) {
+        } catch (GdxRuntimeException gre) {
+            stroke = Color.CLEAR;
+        }
+        path2Pixmap(width, height, element.getAttribute("d"), fill, stroke, H.svgReadDouble(H.getAttribute(element, "stroke-width"), Math.sqrt(width * width + height * height)), pixmap);
+    }
+
+    public static void circle(XmlReader.Element element, Pixmap pixmap) {
+        int width = Integer.valueOf(H.getAttribute(element, "width"));
+        int height = Integer.valueOf(H.getAttribute(element, "height"));
+        Color fill = Color.BLACK, stroke = Color.BLACK;
+        try {
+            fill = H.svgReadColor(H.getAttribute(element, "fill"), fill);
+        } catch (NullPointerException ignored) {
+        }
+        try {
+            stroke = H.svgReadColor(H.getAttribute(element, "stroke"), stroke);
+        } catch (NullPointerException ignored) {
+        } catch (GdxRuntimeException gre) {
+            stroke = Color.CLEAR;
+        }
+        double cx = Double.valueOf(H.getAttribute(element, "cx")), cy = Double.valueOf(H.getAttribute(element, "cy")), r = Double.valueOf(H.getAttribute(element, "r"));
+        String d = "M " + cx + " " + cy + " " +
+                "m " + -r + " 0 " +
+                "a " + r + " " + r + " 0 1 1 " + r * 2 + " 0 " +
+                "a " + r + " " + r + " 0 1 1 " + -r * 2 + " 0 ";
+        path2Pixmap(width, height, d, fill, stroke, H.svgReadDouble(H.getAttribute(element, "stroke-width"), Math.sqrt(width * width + height * height)), pixmap);
     }
 
     /**
      * Helpful(-less) methods.
      */
     public static class H {
+
+        public static LinkedHashMap<String, Color> colorMap = new LinkedHashMap<String, Color>(150);
+
+        static {
+            colorMap.put("aliceblue", H.color8BitsToFloat(240, 248, 255));
+            colorMap.put("antiquewhite", H.color8BitsToFloat(250, 235, 215));
+            colorMap.put("aqua", H.color8BitsToFloat(0, 255, 255));
+            colorMap.put("aquamarine", H.color8BitsToFloat(127, 255, 212));
+            colorMap.put("azure", H.color8BitsToFloat(240, 255, 255));
+            colorMap.put("beige", H.color8BitsToFloat(245, 245, 220));
+            colorMap.put("bisque", H.color8BitsToFloat(255, 228, 196));
+            colorMap.put("black", H.color8BitsToFloat(0, 0, 0));
+            colorMap.put("blanchedalmond", H.color8BitsToFloat(255, 235, 205));
+            colorMap.put("blue", H.color8BitsToFloat(0, 0, 255));
+            colorMap.put("blueviolet", H.color8BitsToFloat(138, 43, 226));
+            colorMap.put("brown", H.color8BitsToFloat(165, 42, 42));
+            colorMap.put("burlywood", H.color8BitsToFloat(222, 184, 135));
+            colorMap.put("cadetblue", H.color8BitsToFloat(95, 158, 160));
+            colorMap.put("chartreuse", H.color8BitsToFloat(127, 255, 0));
+            colorMap.put("chocolate", H.color8BitsToFloat(210, 105, 30));
+            colorMap.put("coral", H.color8BitsToFloat(255, 127, 80));
+            colorMap.put("cornflowerblue", H.color8BitsToFloat(100, 149, 237));
+            colorMap.put("cornsilk", H.color8BitsToFloat(255, 248, 220));
+            colorMap.put("crimson", H.color8BitsToFloat(220, 20, 60));
+            colorMap.put("cyan", H.color8BitsToFloat(0, 255, 255));
+            colorMap.put("darkblue", H.color8BitsToFloat(0, 0, 139));
+            colorMap.put("darkcyan", H.color8BitsToFloat(0, 139, 139));
+            colorMap.put("darkgoldenrod", H.color8BitsToFloat(184, 134, 11));
+            colorMap.put("darkgray", H.color8BitsToFloat(169, 169, 169));
+            colorMap.put("darkgreen", H.color8BitsToFloat(0, 100, 0));
+            colorMap.put("darkgrey", H.color8BitsToFloat(169, 169, 169));
+            colorMap.put("darkkhaki", H.color8BitsToFloat(189, 183, 107));
+            colorMap.put("darkmagenta", H.color8BitsToFloat(139, 0, 139));
+            colorMap.put("darkolivegreen", H.color8BitsToFloat(85, 107, 47));
+            colorMap.put("darkorange", H.color8BitsToFloat(255, 140, 0));
+            colorMap.put("darkorchid", H.color8BitsToFloat(153, 50, 204));
+            colorMap.put("darkred", H.color8BitsToFloat(139, 0, 0));
+            colorMap.put("darksalmon", H.color8BitsToFloat(233, 150, 122));
+            colorMap.put("darkseagreen", H.color8BitsToFloat(143, 188, 143));
+            colorMap.put("darkslateblue", H.color8BitsToFloat(72, 61, 139));
+            colorMap.put("darkslategray", H.color8BitsToFloat(47, 79, 79));
+            colorMap.put("darkslategrey", H.color8BitsToFloat(47, 79, 79));
+            colorMap.put("darkturquoise", H.color8BitsToFloat(0, 206, 209));
+            colorMap.put("darkviolet", H.color8BitsToFloat(148, 0, 211));
+            colorMap.put("deeppink", H.color8BitsToFloat(255, 20, 147));
+            colorMap.put("deepskyblue", H.color8BitsToFloat(0, 191, 255));
+            colorMap.put("dimgray", H.color8BitsToFloat(105, 105, 105));
+            colorMap.put("dimgrey", H.color8BitsToFloat(105, 105, 105));
+            colorMap.put("dodgerblue", H.color8BitsToFloat(30, 144, 255));
+            colorMap.put("firebrick", H.color8BitsToFloat(178, 34, 34));
+            colorMap.put("floralwhite", H.color8BitsToFloat(255, 250, 240));
+            colorMap.put("forestgreen", H.color8BitsToFloat(34, 139, 34));
+            colorMap.put("fuchsia", H.color8BitsToFloat(255, 0, 255));
+            colorMap.put("gainsboro", H.color8BitsToFloat(220, 220, 220));
+            colorMap.put("ghostwhite", H.color8BitsToFloat(248, 248, 255));
+            colorMap.put("gold", H.color8BitsToFloat(255, 215, 0));
+            colorMap.put("goldenrod", H.color8BitsToFloat(218, 165, 32));
+            colorMap.put("gray", H.color8BitsToFloat(128, 128, 128));
+            colorMap.put("grey", H.color8BitsToFloat(128, 128, 128));
+            colorMap.put("green", H.color8BitsToFloat(0, 128, 0));
+            colorMap.put("greenyellow", H.color8BitsToFloat(173, 255, 47));
+            colorMap.put("honeydew", H.color8BitsToFloat(240, 255, 240));
+            colorMap.put("hotpink", H.color8BitsToFloat(255, 105, 180));
+            colorMap.put("indianred", H.color8BitsToFloat(205, 92, 92));
+            colorMap.put("indigo", H.color8BitsToFloat(75, 0, 130));
+            colorMap.put("ivory", H.color8BitsToFloat(255, 255, 240));
+            colorMap.put("khaki", H.color8BitsToFloat(240, 230, 140));
+            colorMap.put("lavender", H.color8BitsToFloat(230, 230, 250));
+            colorMap.put("lavenderblush", H.color8BitsToFloat(255, 240, 245));
+            colorMap.put("lawngreen", H.color8BitsToFloat(124, 252, 0));
+            colorMap.put("lemonchiffon", H.color8BitsToFloat(255, 250, 205));
+            colorMap.put("lightblue", H.color8BitsToFloat(173, 216, 230));
+            colorMap.put("lightcoral", H.color8BitsToFloat(240, 128, 128));
+            colorMap.put("lightcyan", H.color8BitsToFloat(224, 255, 255));
+            colorMap.put("lightgoldenrodyellow", H.color8BitsToFloat(250, 250, 210));
+            colorMap.put("lightgray", H.color8BitsToFloat(211, 211, 211));
+            colorMap.put("lightgreen", H.color8BitsToFloat(144, 238, 144));
+            colorMap.put("lightgrey", H.color8BitsToFloat(211, 211, 211));
+            colorMap.put("lightpink", H.color8BitsToFloat(255, 182, 193));
+            colorMap.put("lightsalmon", H.color8BitsToFloat(255, 160, 122));
+            colorMap.put("lightseagreen", H.color8BitsToFloat(32, 178, 170));
+            colorMap.put("lightskyblue", H.color8BitsToFloat(135, 206, 250));
+            colorMap.put("lightslategray", H.color8BitsToFloat(119, 136, 153));
+            colorMap.put("lightslategrey", H.color8BitsToFloat(119, 136, 153));
+            colorMap.put("lightsteelblue", H.color8BitsToFloat(176, 196, 222));
+            colorMap.put("lightyellow", H.color8BitsToFloat(255, 255, 224));
+            colorMap.put("lime", H.color8BitsToFloat(0, 255, 0));
+            colorMap.put("limegreen", H.color8BitsToFloat(50, 205, 50));
+            colorMap.put("linen", H.color8BitsToFloat(250, 240, 230));
+            colorMap.put("magenta", H.color8BitsToFloat(255, 0, 255));
+            colorMap.put("maroon", H.color8BitsToFloat(128, 0, 0));
+            colorMap.put("mediumaquamarine", H.color8BitsToFloat(102, 205, 170));
+            colorMap.put("mediumblue", H.color8BitsToFloat(0, 0, 205));
+            colorMap.put("mediumorchid", H.color8BitsToFloat(186, 85, 211));
+            colorMap.put("mediumpurple", H.color8BitsToFloat(147, 112, 219));
+            colorMap.put("mediumseagreen", H.color8BitsToFloat(60, 179, 113));
+            colorMap.put("mediumslateblue", H.color8BitsToFloat(123, 104, 238));
+            colorMap.put("mediumspringgreen", H.color8BitsToFloat(0, 250, 154));
+            colorMap.put("mediumturquoise", H.color8BitsToFloat(72, 209, 204));
+            colorMap.put("mediumvioletred", H.color8BitsToFloat(199, 21, 133));
+            colorMap.put("midnightblue", H.color8BitsToFloat(25, 25, 112));
+            colorMap.put("mintcream", H.color8BitsToFloat(245, 255, 250));
+            colorMap.put("mistyrose", H.color8BitsToFloat(255, 228, 225));
+            colorMap.put("moccasin", H.color8BitsToFloat(255, 228, 181));
+            colorMap.put("navajowhite", H.color8BitsToFloat(255, 222, 173));
+            colorMap.put("navy", H.color8BitsToFloat(0, 0, 128));
+            colorMap.put("oldlace", H.color8BitsToFloat(253, 245, 230));
+            colorMap.put("olive", H.color8BitsToFloat(128, 128, 0));
+            colorMap.put("olivedrab", H.color8BitsToFloat(107, 142, 35));
+            colorMap.put("orange", H.color8BitsToFloat(255, 165, 0));
+            colorMap.put("orangered", H.color8BitsToFloat(255, 69, 0));
+            colorMap.put("orchid", H.color8BitsToFloat(218, 112, 214));
+            colorMap.put("palegoldenrod", H.color8BitsToFloat(238, 232, 170));
+            colorMap.put("palegreen", H.color8BitsToFloat(152, 251, 152));
+            colorMap.put("paleturquoise", H.color8BitsToFloat(175, 238, 238));
+            colorMap.put("palevioletred", H.color8BitsToFloat(219, 112, 147));
+            colorMap.put("papayawhip", H.color8BitsToFloat(255, 239, 213));
+            colorMap.put("peachpuff", H.color8BitsToFloat(255, 218, 185));
+            colorMap.put("peru", H.color8BitsToFloat(205, 133, 63));
+            colorMap.put("pink", H.color8BitsToFloat(255, 192, 203));
+            colorMap.put("plum", H.color8BitsToFloat(221, 160, 221));
+            colorMap.put("powderblue", H.color8BitsToFloat(176, 224, 230));
+            colorMap.put("purple", H.color8BitsToFloat(128, 0, 128));
+            colorMap.put("red", H.color8BitsToFloat(255, 0, 0));
+            colorMap.put("rosybrown", H.color8BitsToFloat(188, 143, 143));
+            colorMap.put("royalblue", H.color8BitsToFloat(65, 105, 225));
+            colorMap.put("saddlebrown", H.color8BitsToFloat(139, 69, 19));
+            colorMap.put("salmon", H.color8BitsToFloat(250, 128, 114));
+            colorMap.put("sandybrown", H.color8BitsToFloat(244, 164, 96));
+            colorMap.put("seagreen", H.color8BitsToFloat(46, 139, 87));
+            colorMap.put("seashell", H.color8BitsToFloat(255, 245, 238));
+            colorMap.put("sienna", H.color8BitsToFloat(160, 82, 45));
+            colorMap.put("silver", H.color8BitsToFloat(192, 192, 192));
+            colorMap.put("skyblue", H.color8BitsToFloat(135, 206, 235));
+            colorMap.put("slateblue", H.color8BitsToFloat(106, 90, 205));
+            colorMap.put("slategray", H.color8BitsToFloat(112, 128, 144));
+            colorMap.put("slategrey", H.color8BitsToFloat(112, 128, 144));
+            colorMap.put("snow", H.color8BitsToFloat(255, 250, 250));
+            colorMap.put("springgreen", H.color8BitsToFloat(0, 255, 127));
+            colorMap.put("steelblue", H.color8BitsToFloat(70, 130, 180));
+            colorMap.put("tan", H.color8BitsToFloat(210, 180, 140));
+            colorMap.put("teal", H.color8BitsToFloat(0, 128, 128));
+            colorMap.put("thistle", H.color8BitsToFloat(216, 191, 216));
+            colorMap.put("tomato", H.color8BitsToFloat(255, 99, 71));
+            colorMap.put("transparent", H.color8BitsToFloat(0, 0, 0, 0));
+            colorMap.put("turquoise", H.color8BitsToFloat(64, 224, 208));
+            colorMap.put("violet", H.color8BitsToFloat(238, 130, 238));
+            colorMap.put("wheat", H.color8BitsToFloat(245, 222, 179));
+            colorMap.put("white", H.color8BitsToFloat(255, 255, 255));
+            colorMap.put("whitesmoke", H.color8BitsToFloat(245, 245, 245));
+            colorMap.put("yellow", H.color8BitsToFloat(255, 255, 0));
+            colorMap.put("yellowgreen", H.color8BitsToFloat(154, 205, 50));
+        }
 
         /**
          * Split mixed tokens.
@@ -218,8 +416,11 @@ public class Svg2Pixmap {
             for (int i = 0; i < d.length(); i++) {
                 char c = d.charAt(i);
                 if (c == ',') sb.append(' '); // Change ',' into ' '.
-                else sb.append(c);
-                if (('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')) sb.append(' ');
+                if (('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z')) {
+                    sb.append(' ');
+                    sb.append(c);
+                    sb.append(' ');
+                } else sb.append(c);
             }
             return sb.toString();
         }
@@ -240,14 +441,16 @@ public class Svg2Pixmap {
 
         /**
          * Change all relative position into absolute ones
+         * @deprecated Something went wrong ???
          */
+        @Deprecated
         public static void r2a(char command, List<String> params, Vector2 currentPoint) {
             boolean isX = true;
             if (command == 'a') {
-                params.set(0, String.valueOf(Double.valueOf(params.get(0) + currentPoint.x)));
-                params.set(1, String.valueOf(Double.valueOf(params.get(1) + currentPoint.y)));
-                params.set(5, String.valueOf(Double.valueOf(params.get(5) + currentPoint.x)));
-                params.set(6, String.valueOf(Double.valueOf(params.get(6) + currentPoint.y)));
+                params.set(0, String.valueOf(Double.valueOf(params.get(0)) + currentPoint.x));
+                params.set(0, String.valueOf(Double.valueOf(params.get(1)) + currentPoint.x));
+                params.set(0, String.valueOf(Double.valueOf(params.get(5)) + currentPoint.x));
+                params.set(0, String.valueOf(Double.valueOf(params.get(6)) + currentPoint.x));
             } else if ('a' < command && command <= 'z') {
                 for (int i = 0; i < params.size(); i++) {
                     double d = Double.valueOf(params.get(i));
@@ -337,6 +540,33 @@ public class Svg2Pixmap {
         public static double svgReadDouble(String s, double k) {
             if (s.endsWith("%")) return Double.valueOf(s.substring(0, s.length() - 2)) * k / 100.0;
             return Double.valueOf(s);
+        }
+
+        public static Color svgReadColor(String color, Color currentColor) {
+            // TODO implement
+            if (color.equals("currentcolor")) return currentColor;
+            if (color.startsWith("#")) return Color.valueOf(color.replace("#", ""));
+            return colorMap.get(color);
+        }
+
+        public static Color color8BitsToFloat(int r, int g, int b, int a) {
+            return new Color(r / 256.0f, g / 256.0f, b / 256.0f, a / 256.0f);
+        }
+
+        public static Color color8BitsToFloat(int r, int g, int b) {
+            return new Color(r / 256.0f, g / 256.0f, b / 256.0f, 1f);
+        }
+
+        public static String getAttribute(XmlReader.Element element, String attribute) {
+            try {
+                return element.getAttribute(attribute);
+            } catch (GdxRuntimeException gre) {
+                try {
+                    return getAttribute(element.getParent(), attribute);
+                } catch (NullPointerException npe) {
+                    throw new GdxRuntimeException("No attribute \"" + attribute + "\" in elsement \"" + element.toString() + "\" or its parents");
+                }
+            }
         }
 
         /**
