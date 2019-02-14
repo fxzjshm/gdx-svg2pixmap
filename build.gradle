@@ -7,9 +7,17 @@ ext {
 buildscript {
     repositories {
         mavenLocal()
-        mavenCentral()
+        if(System.getProperty("user.country").equals("CN")){
+            maven { url "https://maven.aliyun.com/repository/central/" }
+            maven { url "https://maven.aliyun.com/repository/google/" }
+            maven { url "https://maven.aliyun.com/repository/jcenter/" }
+        }else{
+            mavenCentral()
+            google()
+            jcenter()
+        }
         maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-        jcenter()
+        
     }
     dependencies {
 	    classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
@@ -34,12 +42,18 @@ allprojects {
     version = VERSION
     ext {
         appName = APPNAME
-        gdxVersion = '1.9.6'
+        gdxVersion = '1.9.9'
     }
 
     repositories {
         mavenLocal()
-        mavenCentral()
+        if(System.getProperty("user.country").equals("CN")){
+            maven { url "https://maven.aliyun.com/repository/central/" }
+            maven { url "https://maven.aliyun.com/repository/google" }
+        }else{
+            mavenCentral()
+            google()
+        }
         maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
         maven { url "https://oss.sonatype.org/content/repositories/releases/" }
     }
@@ -50,13 +64,16 @@ project(":core") {
 
     dependencies {
         compile "com.badlogicgames.gdx:gdx:$gdxVersion"
-		
+        compile "com.badlogicgames.gdx:gdx:$gdxVersion:sources"
         testCompile "junit:junit:4.12"
         testCompile "com.badlogicgames.gdx:gdx-backend-lwjgl:$gdxVersion"
         testCompile "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
-        testCompile "org.apache.xmlgraphics:batik-transcoder:1.8"
-        testCompile "org.apache.xmlgraphics:xmlgraphics-commons:2.1"
-        testCompile "org.apache.xmlgraphics:batik-codec:1.8"
+        compile "org.apache.xmlgraphics:batik-transcoder:1.8"
+        compile "org.apache.xmlgraphics:batik-transcoder:1.8:sources"
+        compile "org.apache.xmlgraphics:xmlgraphics-commons:2.1"
+        compile "org.apache.xmlgraphics:xmlgraphics-commons:2.1:sources"
+        compile "org.apache.xmlgraphics:batik-codec:1.8"
+        compile "org.apache.xmlgraphics:batik-codec:1.8:sources"
     }
 	
 	bintray {
