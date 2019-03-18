@@ -1,0 +1,12 @@
+apply plugin: 'application'
+
+sourceCompatibility = 1.8
+mainClassName = 'io.github.fxzjshm.gdx.svg2pixmap.test.headless.HeadlessLauncher'
+eclipse.project.name = appName + '-headless'
+
+dependencies {
+    compile project(':test-libgdx:core')
+    compile "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
+    compile "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+    testCompile "junit:junit:4.12"
+}

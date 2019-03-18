@@ -1,0 +1,92 @@
+apply plugin: 'gwt'
+apply plugin: 'war'
+apply plugin: 'org.akhikhl.gretty'
+
+gwt {
+  gwtVersion = gwtFrameworkVersion // Should match the version used for building the GWT backend. See gradle.properties.
+  maxHeapSize = '1G' // Default 256m is not enough for the GWT compiler. GWT is HUNGRY.
+  minHeapSize = '64M'
+
+  src = files(file('src/main/java')) // Needs to be in front of "modules" below.
+  modules 'io.github.fxzjshm.gdx.svg2pixmap.test.GdxDefinition'
+  devModules 'io.github.fxzjshm.gdx.svg2pixmap.test.GdxDefinitionSuperdev'
+  project.webAppDirName = 'webapp'
+
+  compiler {
+    strict = true
+    disableCastChecking = true
+  }
+}
+
+dependencies {
+  compile project(':test-libgdx:core')
+  compile "com.badlogicgames.gdx:gdx:$gdxVersion:sources"
+  compile "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion"
+  compile "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion:sources"
+}
+
+task startHttpServer () {
+    dependsOn draftCompileGwt
+
+    String output = project.buildDir.path + "/gwt/draftOut"
+
+    doLast {
+        copy {
+            from "webapp"
+            into output
+        }
+
+        copy {
+            from "war"
+            into output
+        }
+
+        server = new SimpleHttpFileServerFactory().start(new File(output), httpFilePort)
+
+        println "Server started in directory " + server.getContentRoot() + ", http://localhost:" + server.getPort()
+    }
+}
+
+import org.wisepersist.gradle.plugins.gwt.GwtSuperDev
+
+task superDev (type: GwtSuperDev) {
+    dependsOn startHttpServer
+    doFirst {
+        gwt.modules = gwt.devModules
+    }
+}
+
+task dist(dependsOn: [clean, compileGwt]) {
+  doLast {
+    file("build/dist").mkdirs()
+    copy {
+      from "build/gwt/out"
+      into "build/dist"
+    }
+    copy {
+      from "webapp"
+      into "build/dist"
+      }
+    copy {
+      from "war"
+      into "build/dist"
+    }
+  }
+}
+
+task addSource {
+    doLast {
+        sourceSets.main.compileClasspath += files(project(':core').sourceSets.main.allJava.srcDirs)
+    }
+}
+
+tasks.compileGwt.dependsOn(addSource)
+tasks.draftCompileGwt.dependsOn(addSource)
+
+sourceCompatibility = 1.6
+sourceSets.main.java.srcDirs = [ "src/main/java" ]
+
+
+eclipse.project {
+    name = appName + "-html"
+}

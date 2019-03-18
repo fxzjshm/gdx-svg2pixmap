@@ -16,11 +16,15 @@ buildscript {
             google()
             jcenter()
         }
-        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+        // maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
         
     }
     dependencies {
 	    classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
+        classpath "com.badlogicgames.gdx:gdx-tools:$gdxVersion"
+        classpath "com.android.tools.build:gradle:$androidPluginVersion"
+        classpath "org.wisepersist:gwt-gradle-plugin:$gwtPluginVersion"
+        classpath 'org.akhikhl.gretty:gretty:+'
     }
 }
 
@@ -42,7 +46,6 @@ allprojects {
     version = VERSION
     ext {
         appName = APPNAME
-        gdxVersion = '1.9.9'
     }
 
     repositories {
@@ -54,8 +57,8 @@ allprojects {
             mavenCentral()
             google()
         }
-        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-        maven { url "https://oss.sonatype.org/content/repositories/releases/" }
+        // maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+        // maven { url "https://oss.sonatype.org/content/repositories/releases/" }
     }
 }
 
@@ -66,8 +69,6 @@ project(":core") {
         compile "com.badlogicgames.gdx:gdx:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx:$gdxVersion:sources"
         testCompile "junit:junit:4.12"
-        testCompile "com.badlogicgames.gdx:gdx-backend-lwjgl:$gdxVersion"
-        testCompile "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
         compile "org.apache.xmlgraphics:batik-transcoder:1.8"
         compile "org.apache.xmlgraphics:batik-transcoder:1.8:sources"
         compile "org.apache.xmlgraphics:xmlgraphics-commons:2.1"

@@ -1,0 +1,20 @@
+configure(subprojects) {
+    apply plugin: 'java'
+    sourceCompatibility = 1.6
+}
+
+subprojects {
+    version = '0.0.1-SNAPSHOT'
+    ext.appName = 'gdx-svg2pixmap-test-libgdx'
+}
+
+/*
+// Clearing Eclipse project data in root folder:
+tasks.eclipse.doLast {
+  delete '.project'
+  delete '.classpath'
+  delete '.settings/'
+}
+*/
+
+eclipse.project.name = appName + '-test-libgdx'

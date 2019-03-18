@@ -1,1 +1,1 @@
-include 'core'
+include 'core', 'test-libgdx', 'test-libgdx:core', 'test-libgdx:gwt', 'test-libgdx:headless'
