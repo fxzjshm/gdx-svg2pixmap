@@ -188,7 +188,7 @@ public class Svg2Pixmap {
                 else if (child.getName().equals("circle"))
                     circle(child, pixmap);
             } catch (Exception e) { //TODO Dangerous here !!!
-                Gdx.app.debug("Svg2Pixmap", "File:\n" + fileContent, e);
+                Gdx.app.debug("Svg2Pixmap", "File content:\n" + fileContent + "\nError stacktrace: ", e);
             }
         }
         return pixmap;
@@ -216,7 +216,7 @@ public class Svg2Pixmap {
         } catch (GdxRuntimeException gre) {
             stroke = Color.CLEAR;
         }
-        path2Pixmap(width, height, element.getAttribute("d"), fill, stroke, H.svgReadDouble(H.getAttribute(element, "stroke-width"), Math.sqrt(width * width + height * height)), pixmap);
+        path2Pixmap(width, height, H.getAttribute(element, "d"), fill, stroke, H.svgReadDouble(H.getAttribute(element, "stroke-width"), Math.sqrt(width * width + height * height)), pixmap);
     }
 
     public static void circle(XmlReader.Element element, Pixmap pixmap) {
@@ -559,13 +559,16 @@ public class Svg2Pixmap {
         }
 
         public static String getAttribute(XmlReader.Element element, String attribute) {
+            if (element == null) {
+                throw new GdxRuntimeException("cannot read attribute `" + attribute + "` on null element");
+            }
             try {
                 return element.getAttribute(attribute);
             } catch (GdxRuntimeException gre) {
                 try {
                     return getAttribute(element.getParent(), attribute);
                 } catch (NullPointerException npe) {
-                    throw new GdxRuntimeException("No attribute \"" + attribute + "\" in elsement \"" + element.toString() + "\" or its parents");
+                    throw new GdxRuntimeException("No attribute \"" + attribute + "\" in element \"" + element.toString() + "\" or its parents");
                 }
             }
         }

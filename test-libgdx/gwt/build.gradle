@@ -18,6 +18,9 @@ gwt {
   }
 }
 
+def HttpFileServer server = null
+def httpFilePort = 8080
+
 task startHttpServer () {
     dependsOn draftCompileGwt
 
@@ -34,7 +37,14 @@ task startHttpServer () {
             into output
         }
 
-        server = new SimpleHttpFileServerFactory().start(new File(output), httpFilePort)
+        while(httpFilePort < 65536) {
+            try {
+                server = new SimpleHttpFileServerFactory().start(new File(output), httpFilePort)
+                break
+            } catch (Throwable ignored) {
+                httpFilePort++;
+            }
+        }
 
         println "Server started in directory " + server.getContentRoot() + ", http://localhost:" + server.getPort()
     }
