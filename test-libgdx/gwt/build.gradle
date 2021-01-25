@@ -70,6 +70,7 @@ task dist(dependsOn: [clean, compileGwt]) {
 task addSource {
     doLast {
         sourceSets.main.compileClasspath += files(project(':core').sourceSets.main.allJava.srcDirs)
+        sourceSets.main.compileClasspath += files(project(':test-libgdx:core').sourceSets.main.allJava.srcDirs)
     }
 }
 
