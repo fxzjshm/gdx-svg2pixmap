@@ -18,10 +18,14 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Scaling;
+import com.badlogic.gdx.utils.async.AsyncExecutor;
+import com.badlogic.gdx.utils.async.ThreadUtils;
 import com.badlogic.gdx.utils.reflect.ClassReflection;
 import com.badlogic.gdx.utils.reflect.ReflectionException;
 import com.badlogic.gdx.utils.viewport.ScalingViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.github.fxzjshm.gdx.svg2pixmap.Svg2Pixmap;
 
@@ -34,7 +38,9 @@ public class TestCore extends ApplicationAdapter {
     public static Pixmap none;
 
     public static int width = 64, height = 64;
-    public static double drawScale = 5,outputScale=2;
+    public static double drawScale = 5, outputScale = 2;
+
+    public static AsyncExecutor asyncExecutor = new AsyncExecutor(Runtime.getRuntime().availableProcessors());
 
     public Pixmap pixmap1, pixmap2;
     public int index = 0;
@@ -144,9 +150,17 @@ public class TestCore extends ApplicationAdapter {
             throw new RuntimeException("No test file found in " + directory.path());
         }
         results1 = new Pixmap[svgFiles.length];
+        AtomicInteger count = new AtomicInteger(0);
         for (int i = 0; i < svgFiles.length; i++) {
-            FileHandle file = svgFiles[i];
-            results1[i] = Svg2Pixmap.svg2Pixmap(file.readString(), (int) (width * outputScale), (int) (height * outputScale));
+            int j = i;
+            asyncExecutor.submit(() -> {
+                results1[j] = Svg2Pixmap.svg2Pixmap(svgFiles[j].readString(), (int) (width * outputScale), (int) (height * outputScale));
+                count.incrementAndGet();
+                return null;
+            });
+        }
+        while (count.get() < svgFiles.length) {
+            ThreadUtils.yield();
         }
     }
 

@@ -15,6 +15,7 @@ gwt {
   compiler {
     strict = true
     disableCastChecking = true
+    compiler.style = Style.DETAILED
   }
 }
 
@@ -51,6 +52,7 @@ task startHttpServer () {
 }
 
 import org.wisepersist.gradle.plugins.gwt.GwtSuperDev
+import org.wisepersist.gradle.plugins.gwt.Style
 
 task superDev (type: GwtSuperDev) {
     dependsOn startHttpServer

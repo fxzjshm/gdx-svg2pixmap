@@ -5,6 +5,7 @@ import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.utils.GdxRuntimeException;
+import com.badlogic.gdx.utils.async.ThreadUtils;
 
 import org.apache.batik.transcoder.TranscoderException;
 import org.apache.batik.transcoder.TranscoderInput;
@@ -13,6 +14,9 @@ import org.apache.batik.transcoder.image.PNGTranscoder;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import io.github.fxzjshm.gdx.svg2pixmap.Svg2Pixmap;
 
 import static io.github.fxzjshm.gdx.svg2pixmap.test.TestCore.*;
 
@@ -26,18 +30,28 @@ public class Comparison {
     public static void compareToStandardResults() throws TranscoderException, IOException {
         boolean fail = false;
         if (svgFiles.length == 0) {
-            TestCore.testSvg2Pixmap();
+            testSvg2Pixmap();
         }
-        TestCore.results2 = new Pixmap[svgFiles.length];
+        results2 = new Pixmap[svgFiles.length];
+
+        AtomicInteger count = new AtomicInteger(0);
         for (int i = 0; i < svgFiles.length; i++) {
-            Pixmap pixmap1 = results1[i];
+            int j = i;
+            asyncExecutor.submit(() -> {
+                TestCore.results2[j] = standardConvert(svgFiles[j]);
+                count.incrementAndGet();
+                return null;
+            });
+        }
+        while (count.get() < svgFiles.length) {
+            ThreadUtils.yield();
+        }
 
+        for (int i = 0; i < svgFiles.length; i++) {
             FileHandle file = svgFiles[i];
-            Pixmap pixmap2 = standardConvert(file);
-            TestCore.results2[i] = pixmap2;
-
+            Pixmap pixmap1 = results1[i];
+            Pixmap pixmap2 = results2[i];
             double result = comparePixmaps(pixmap1, pixmap2);
-            ;
             String message = "File " + file.name() + ": " + result;
             Gdx.app.log("TestSvg2Pixmap", message);
             if (result < 0.9) {
@@ -54,8 +68,8 @@ public class Comparison {
         PNGTranscoder transcoder = new PNGTranscoder();
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         TranscoderOutput transcoderOutput = new TranscoderOutput(byteArrayOutputStream);
-        transcoder.addTranscodingHint(PNGTranscoder.KEY_WIDTH, (float)(width * outputScale));
-        transcoder.addTranscodingHint(PNGTranscoder.KEY_HEIGHT, (float)(height * outputScale));
+        transcoder.addTranscodingHint(PNGTranscoder.KEY_WIDTH, (float) (width * outputScale));
+        transcoder.addTranscodingHint(PNGTranscoder.KEY_HEIGHT, (float) (height * outputScale));
         transcoder.transcode(new TranscoderInput(file.read()), transcoderOutput);
         byte[] content = byteArrayOutputStream.toByteArray();
         Pixmap pixmap2 = new Pixmap(content, 0, content.length);
