@@ -113,6 +113,15 @@ project(":test-libgdx:headless"){
         testCompile "junit:junit:4.12"
     }
 }
+
+project(":test-libgdx:desktop"){
+    dependencies {
+        compile project(':test-libgdx:native')
+        compile "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
+        compile "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+    }
+}
+
 project(":test-libgdx:gwt"){
     dependencies {
         compile project(':test-libgdx:core')

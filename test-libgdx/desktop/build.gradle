@@ -1,0 +1,5 @@
+apply plugin: 'application'
+
+sourceCompatibility = 1.8
+mainClassName = 'io.github.fxzjshm.gdx.svg2pixmap.test.desktop.DesktopLauncher'
+eclipse.project.name = appName + '-desktop'

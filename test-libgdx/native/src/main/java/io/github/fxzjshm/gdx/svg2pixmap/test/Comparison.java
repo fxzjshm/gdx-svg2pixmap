@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.utils.GdxRuntimeException;
 
 import org.apache.batik.transcoder.TranscoderException;
 import org.apache.batik.transcoder.TranscoderInput;
@@ -13,8 +14,7 @@ import org.apache.batik.transcoder.image.PNGTranscoder;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import static io.github.fxzjshm.gdx.svg2pixmap.test.TestCore.results1;
-import static io.github.fxzjshm.gdx.svg2pixmap.test.TestCore.svgFiles;
+import static io.github.fxzjshm.gdx.svg2pixmap.test.TestCore.*;
 
 /**
  * Compare to the standard converters. Currently choosing Apache Batik
@@ -24,20 +24,29 @@ public class Comparison {
 
     @SuppressWarnings("unused")
     public static void compareToStandardResults() throws TranscoderException, IOException {
+        boolean fail = false;
         if (svgFiles.length == 0) {
             TestCore.testSvg2Pixmap();
         }
+        TestCore.results2 = new Pixmap[svgFiles.length];
         for (int i = 0; i < svgFiles.length; i++) {
-            Pixmap pixmap1=results1[i];
+            Pixmap pixmap1 = results1[i];
 
-            FileHandle file=svgFiles[i];
-            Pixmap pixmap2=standardConvert(file);
+            FileHandle file = svgFiles[i];
+            Pixmap pixmap2 = standardConvert(file);
+            TestCore.results2[i] = pixmap2;
 
-            double result = comparePixmaps(pixmap1, pixmap2);;
+            double result = comparePixmaps(pixmap1, pixmap2);
+            ;
             String message = "File " + file.name() + ": " + result;
             Gdx.app.log("TestSvg2Pixmap", message);
-            if (result < 0.9)
-                throw new RuntimeException("Compare failed: " + file.name());
+            if (result < 0.9) {
+                Gdx.app.error("compareToStandardResults", "Compare failed: " + file.name());
+                fail = true;
+            }
+        }
+        if (fail) {
+            throw new GdxRuntimeException("Compare failed.");
         }
     }
 
@@ -45,6 +54,8 @@ public class Comparison {
         PNGTranscoder transcoder = new PNGTranscoder();
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         TranscoderOutput transcoderOutput = new TranscoderOutput(byteArrayOutputStream);
+        transcoder.addTranscodingHint(PNGTranscoder.KEY_WIDTH, (float)(width * outputScale));
+        transcoder.addTranscodingHint(PNGTranscoder.KEY_HEIGHT, (float)(height * outputScale));
         transcoder.transcode(new TranscoderInput(file.read()), transcoderOutput);
         byte[] content = byteArrayOutputStream.toByteArray();
         Pixmap pixmap2 = new Pixmap(content, 0, content.length);
