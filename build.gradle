@@ -17,12 +17,10 @@ buildscript {
             jcenter()
         }
         // maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
-        
     }
     dependencies {
 	    classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
         classpath "com.badlogicgames.gdx:gdx-tools:$gdxVersion"
-        classpath "com.android.tools.build:gradle:$androidPluginVersion"
         classpath "org.wisepersist:gwt-gradle-plugin:$gwtPluginVersion"
         classpath 'org.akhikhl.gretty:gretty:+'
     }
