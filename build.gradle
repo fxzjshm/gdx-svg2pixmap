@@ -92,6 +92,22 @@ project(":core") {
     }
 }
 
+project(":test-libgdx:core"){
+    dependencies {
+        compile "com.badlogicgames.gdx:gdx:$gdxVersion"
+        compile project(":core")
+    }
+}
+
+project(":test-libgdx:gwt"){
+    dependencies {
+        compile project(':test-libgdx:core')
+        compile "com.badlogicgames.gdx:gdx:$gdxVersion:sources"
+        compile "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion"
+        compile "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion:sources"
+    }
+}
+
 tasks.eclipse.doLast {
     delete ".project"
 }

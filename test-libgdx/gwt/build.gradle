@@ -18,13 +18,6 @@ gwt {
   }
 }
 
-dependencies {
-  compile project(':test-libgdx:core')
-  compile "com.badlogicgames.gdx:gdx:$gdxVersion:sources"
-  compile "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion"
-  compile "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion:sources"
-}
-
 task startHttpServer () {
     dependsOn draftCompileGwt
 
