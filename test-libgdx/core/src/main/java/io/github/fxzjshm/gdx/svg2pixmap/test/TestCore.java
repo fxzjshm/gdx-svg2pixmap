@@ -37,8 +37,8 @@ public class TestCore extends ApplicationAdapter {
     public static Pixmap[] results1 = new Pixmap[0], results2 = new Pixmap[0];
     public static Pixmap none;
 
-    public static int width = 64, height = 64;
-    public static double drawScale = 5, outputScale = 2;
+    public static int width = 32, height = 32;
+    public static double drawScale = 10, outputScale = 2;
 
     public static AsyncExecutor asyncExecutor = new AsyncExecutor(Runtime.getRuntime().availableProcessors());
 

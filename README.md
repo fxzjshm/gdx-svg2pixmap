@@ -12,3 +12,5 @@ You may refer to
 [libgdx-svg](https://code.google.com/p/libgdx-svg/source/browse/gdx/src/com/badlogic/gdx/graphics/g2d/svg) 
 for better experience.  
 I tried writing a wrapper or a java version of the projects above, but failed.
+
+This project contains a translated version of [colinmeinke/svg-arc-to-cubic-bezier](https://github.com/colinmeinke/svg-arc-to-cubic-bezier), which is licensed under LSC.  
