@@ -252,10 +252,20 @@ public class Svg2Pixmap {
         for (int i = 0; i < root.getChildCount(); i++) {
             XmlReader.Element child = root.getChild(i);
             try {
-                if (child.getName().equals("path"))
-                    path(child, pixmap);
-                else if (child.getName().equals("circle"))
-                    circle(child, pixmap);
+                String name = child.getName();
+                switch (name) {
+                    case "path":
+                        path(child, pixmap);
+                        break;
+                    case "circle":
+                        circle(child, pixmap);
+                        break;
+                    case "ellipse":
+                        ellipse(child, pixmap);
+                        break;
+                    default:
+                        Gdx.app.error("svg2PixmapDirectDraw", "Unsupported element " + name);
+                }
             } catch (Exception e) { //TODO Dangerous here !!!
                 Gdx.app.debug("Svg2Pixmap", "File content:\n" + fileContent + "\nError stacktrace: ", e);
             }
@@ -307,6 +317,31 @@ public class Svg2Pixmap {
         String d = "M " + (cx - r) + " " + cy + " " +
                 "A " + r + " " + r + " 0 1 1 " + (cx + r) + " " + cy + " " +
                 "A " + r + " " + r + " 0 1 1 " + (cx - r) + " " + cy + " ";
+        path2Pixmap(width, height, d, fill, stroke, H.svgReadDouble(H.getAttribute(element, "stroke-width"), Math.sqrt(width * width + height * height)), pixmap);
+    }
+
+    public static void ellipse(XmlReader.Element element, Pixmap pixmap) {
+        int width = Integer.parseInt(H.getAttribute(element, "width"));
+        int height = Integer.parseInt(H.getAttribute(element, "height"));
+        Color fill = Color.BLACK, stroke = Color.BLACK;
+        try {
+            fill = H.svgReadColor(H.getAttribute(element, "fill"), fill);
+        } catch (NullPointerException ignored) {
+        }
+        try {
+            stroke = H.svgReadColor(H.getAttribute(element, "stroke"), stroke);
+        } catch (NullPointerException ignored) {
+        } catch (GdxRuntimeException gre) {
+            stroke = Color.CLEAR;
+        }
+        double cx = Double.parseDouble(H.getAttribute(element, "cx")),
+                cy = Double.parseDouble(H.getAttribute(element, "cy")),
+                rx = Double.parseDouble(H.getAttribute(element, "rx")),
+                ry = Double.parseDouble(H.getAttribute(element, "ry"));
+
+        String d = "M " + (cx - rx) + " " + cy + " " +
+                "A " + rx + " " + ry + " 0 1 1 " + (cx + rx) + " " + cy + " " +
+                "A " + rx + " " + ry + " 0 1 1 " + (cx - rx) + " " + cy + " ";
         path2Pixmap(width, height, d, fill, stroke, H.svgReadDouble(H.getAttribute(element, "stroke-width"), Math.sqrt(width * width + height * height)), pixmap);
     }
 
