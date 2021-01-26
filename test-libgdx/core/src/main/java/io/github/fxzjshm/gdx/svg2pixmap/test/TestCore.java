@@ -18,6 +18,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.utils.Scaling;
+import com.badlogic.gdx.utils.TimeUtils;
 import com.badlogic.gdx.utils.async.AsyncExecutor;
 import com.badlogic.gdx.utils.async.ThreadUtils;
 import com.badlogic.gdx.utils.reflect.ClassReflection;
@@ -43,7 +44,7 @@ public class TestCore extends ApplicationAdapter {
     public static AsyncExecutor asyncExecutor = new AsyncExecutor(Runtime.getRuntime().availableProcessors());
 
     public Pixmap pixmap1, pixmap2;
-    public int index = 0;
+    public int index = -1;
 
     public SpriteBatch batch;
     public TextureRegion textureRegion1, textureRegion2;
@@ -68,6 +69,11 @@ public class TestCore extends ApplicationAdapter {
             finished = true;
         }
 
+        if(Gdx.app.getType()!= Application.ApplicationType.HeadlessDesktop){
+            createUI();
+        }
+    }
+    public void createUI(){
         // none = new Pixmap(1, 1, Pixmap.Format.Alpha);
         none = new Pixmap(Gdx.files.internal("libgdx.png"));
         pixmap1 = pixmap2 = none;
@@ -154,7 +160,9 @@ public class TestCore extends ApplicationAdapter {
         for (int i = 0; i < svgFiles.length; i++) {
             int j = i;
             asyncExecutor.submit(() -> {
+                long time = TimeUtils.millis();
                 results1[j] = Svg2Pixmap.svg2Pixmap(svgFiles[j].readString(), (int) (width * outputScale), (int) (height * outputScale));
+                Gdx.app.debug("testSvg2Pixmap", TimeUtils.millis() - time + "ms");
                 count.incrementAndGet();
                 return null;
             });

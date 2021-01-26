@@ -5,7 +5,6 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.GdxRuntimeException;
-import com.badlogic.gdx.utils.TimeUtils;
 import com.badlogic.gdx.utils.XmlReader;
 import com.badlogic.gdx.utils.async.ThreadUtils;
 
@@ -20,6 +19,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Svg2Pixmap {
     /**
      * Generate shapes on a (width * generateScale) x (height * generateScale) Pixmap, then resize to the original size.
+     * This seems to be called super-sampling.
+     * TODO use "signed distance field" method
      * This affects {@link Svg2Pixmap#svg2Pixmap} but not {@link Svg2Pixmap#path2Pixmap}.
      */
     public static int generateScale = 3;
@@ -75,7 +76,9 @@ public class Svg2Pixmap {
                 params.add(stringTokenizer.nextToken());
             }
 
+            // convert relative positions to absolute positions
             H.r2a(command, params, new Vector2(currentPosition.x / pixmap.getWidth() * width, currentPosition.y / pixmap.getHeight() * height));
+
             char newCommand = Character.toUpperCase(command);
             if (newCommand == 'M') {
                 initialPoint.x = currentPosition.x = (Float.parseFloat(params.get(0))) / width * pixmap.getWidth();
