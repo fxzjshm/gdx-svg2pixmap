@@ -239,17 +239,26 @@ public class H {
      */
     public static void curveTo(Pixmap pixmap, Vector2[] points, Color stroke, int strokeWidth) {
         int n = points.length - 1;
-        int pointN = pixmap.getWidth() * pixmap.getHeight();
+        int w = pixmap.getWidth(), h = pixmap.getHeight();
+        double minx = w, maxx = 0, miny = h, maxy = 0;
+        for (Vector2 p : points) {
+            minx = Math.min(p.x, minx);
+            maxx = Math.max(p.x, maxx);
+            miny = Math.min(p.y, miny);
+            maxy = Math.max(p.y, maxy);
+        }
+        int dx = Math.max(1, (int) Math.round(maxx - minx));
+        int dy = Math.max(1, (int) Math.round(maxy - miny));
+        int pointN = dx * dy;
         for (double t = 0; t <= 1; t += 1.0 / pointN) {
             double x = 0, y = 0;
             for (int i = 0; i <= n; i++) {
-                double k = C(n, i) * Math.pow(1 - t, n - i) * Math.pow(t, i);
+                double k = c[n][i] * Math.pow(1 - t, n - i) * Math.pow(t, i);
                 x += k * points[i].x;
                 y += k * points[i].y;
-                C(0, 0);
             }
             pixmap.setColor(stroke);
-//                pixmap.fillCircle((int) Math.round(x), (int) Math.round(y), strokeWidth - 1);
+            // pixmap.fillCircle((int) Math.round(x), (int) Math.round(y), strokeWidth); // this performs worse?
             for (int i = 0; i < strokeWidth; i++) {
                 pixmap.drawCircle((int) Math.round(x), (int) Math.round(y), i);
             }
@@ -257,7 +266,20 @@ public class H {
 
     }
 
-    public static double C(int x, int y) {
+    // @formatter:off
+    // @off
+    public static int[][] c = {
+        /*y  0  1  2  3  4 */// x
+            {1, 0, 0, 0, 0}, // 0
+            {1, 1, 0, 0, 0}, // 1
+            {1, 2, 1, 0, 0}, // 2
+            {1, 3, 3, 1, 0}, // 3
+            {1, 4, 6, 4, 1}  // 4
+    };
+    // @formatter:on
+    // @on
+
+    public static int C(int x, int y) {
         if (y == 0 || y == x) return 1;
         if (y < 0 || y > x) return 0; // risk!
         return C(x - 1, y - 1) + C(x - 1, y);
