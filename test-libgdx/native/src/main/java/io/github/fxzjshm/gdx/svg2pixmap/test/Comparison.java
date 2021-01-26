@@ -16,8 +16,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.github.fxzjshm.gdx.svg2pixmap.Svg2Pixmap;
-
 import static io.github.fxzjshm.gdx.svg2pixmap.test.TestCore.*;
 
 /**
