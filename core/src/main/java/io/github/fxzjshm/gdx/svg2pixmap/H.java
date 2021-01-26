@@ -213,17 +213,12 @@ public class H {
 
     /**
      * Change all relative position into absolute ones
-     *
-     * @deprecated Something went wrong ???
      */
-    @Deprecated
     public static void r2a(char command, List<String> params, Vector2 currentPoint) {
         boolean isX = true;
         if (command == 'a') {
-            params.set(0, String.valueOf(Double.parseDouble(params.get(0)) + currentPoint.x));
-            params.set(0, String.valueOf(Double.parseDouble(params.get(1)) + currentPoint.x));
-            params.set(0, String.valueOf(Double.parseDouble(params.get(5)) + currentPoint.x));
-            params.set(0, String.valueOf(Double.parseDouble(params.get(6)) + currentPoint.x));
+            params.set(5, String.valueOf(Double.parseDouble(params.get(5)) + currentPoint.x));
+            params.set(6, String.valueOf(Double.parseDouble(params.get(6)) + currentPoint.y));
         } else if ('a' < command && command <= 'z') {
             for (int i = 0; i < params.size(); i++) {
                 double d = Double.parseDouble(params.get(i));
