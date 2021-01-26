@@ -6,6 +6,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.utils.StringBuilder;
 import com.badlogic.gdx.utils.XmlReader;
+import com.badlogic.gdx.utils.async.AsyncExecutor;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -16,6 +17,8 @@ import java.util.List;
 public class H {
 
     public static LinkedHashMap<String, Color> colorMap = new LinkedHashMap<>(150);
+
+    static AsyncExecutor asyncExecutor = new AsyncExecutor(Runtime.getRuntime().availableProcessors());
 
     static {
         colorMap.put("aliceblue", color8BitsToFloat(240, 248, 255));

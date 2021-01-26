@@ -5,7 +5,9 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.GdxRuntimeException;
+import com.badlogic.gdx.utils.TimeUtils;
 import com.badlogic.gdx.utils.XmlReader;
+import com.badlogic.gdx.utils.async.ThreadUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,8 +15,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.StringTokenizer;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Svg2Pixmap {
+    /**
+     * Generate shapes on a (width * generateScale) x (height * generateScale) Pixmap, then resize to the original size.
+     * This affects {@link Svg2Pixmap#svg2Pixmap} but not {@link Svg2Pixmap#path2Pixmap}.
+     */
+    public static int generateScale = 3;
 
     /**
      * Convert a SVG {@code <path />} element into a {@link Pixmap}.
@@ -31,7 +39,7 @@ public class Svg2Pixmap {
      */
     public static Pixmap path2Pixmap(int width, int height, String d, Color fill, Color stroke, double strokeWidth, Pixmap pixmap) {
         StringTokenizer stringTokenizer = new StringTokenizer(H.splitMixedTokens(d));
-        double strokeRadius = strokeWidth * Math.sqrt(1.0 * (pixmap.getWidth() * pixmap.getHeight()) / (width * height))/2;
+        double strokeRadius = strokeWidth * Math.sqrt(1.0 * (pixmap.getWidth() * pixmap.getHeight()) / (width * height)) / 2;
 
         Vector2 currentPosition = new Vector2(0, 0);// Current position. Used by commands.
         Vector2 initialPoint = new Vector2(0, 0);// Current position. Used by command 'M'.
@@ -193,6 +201,49 @@ public class Svg2Pixmap {
      * @param height      The height of Pixmap.
      */
     public static Pixmap svg2Pixmap(String fileContent, int width, int height) {
+        if (generateScale == 1) return svg2PixmapDirectDraw(fileContent, width, height);
+
+        final int scaledWidth = width * generateScale, scaledHeight = height * generateScale,
+                scale2 = generateScale * generateScale;
+        final Pixmap scaledPixmap = svg2PixmapDirectDraw(fileContent, scaledWidth, scaledHeight),
+                pixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888);
+        AtomicInteger count = new AtomicInteger(0);
+        for (int x = 0; x < width; x++) {
+            final int x0 = x;
+            H.asyncExecutor.submit(() -> {
+                Color tmpColor = new Color();
+                float r, g, b, a;
+                for (int y = 0; y < height; y++) {
+                    final int y0 = y;
+                    r = g = b = a = 0;
+                    for (int i = 0; i < generateScale; i++) {
+                        for (int j = 0; j < generateScale; j++) {
+                            int color = scaledPixmap.getPixel(x0 * generateScale + i, y0 * generateScale + j);
+                            Color.rgba8888ToColor(tmpColor, color);
+                            r += tmpColor.r;
+                            g += tmpColor.g;
+                            b += tmpColor.b;
+                            a += tmpColor.a;
+                        }
+                    }
+                    r /= scale2;
+                    g /= scale2;
+                    b /= scale2;
+                    a /= scale2;
+                    pixmap.drawPixel(x0, y0, Color.rgba8888(r, g, b, a));
+                }
+                count.incrementAndGet();
+                return null;
+            });
+        }
+        while (count.get() < width) {
+            ThreadUtils.yield();
+        }
+        scaledPixmap.dispose();
+        return pixmap;
+    }
+
+    public static Pixmap svg2PixmapDirectDraw(String fileContent, int width, int height) {
         XmlReader reader = new XmlReader();
         XmlReader.Element root = reader.parse(fileContent);
         double strokeWidth = -1;

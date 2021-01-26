@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE module PUBLIC "-//Google Inc.//DTD Google Web Toolkit trunk//EN" "https://raw.githubusercontent.com/gwtproject/gwt/master/distro-source/core/src/gwt-module.dtd">
 <module>
-	<source path='svg2pixmap'>
-	</source>
+	<source path='svg2pixmap' />
+	<inherits name="java.lang.java-lang-emu" />
 	<extend-configuration-property name="gdx.reflect.include" value="io.github.fxzjshm.gdx.svg2pixmap" />
 </module>
