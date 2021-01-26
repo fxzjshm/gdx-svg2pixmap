@@ -31,8 +31,7 @@ public class Svg2Pixmap {
      */
     public static Pixmap path2Pixmap(int width, int height, String d, Color fill, Color stroke, double strokeWidth, Pixmap pixmap) {
         StringTokenizer stringTokenizer = new StringTokenizer(H.splitMixedTokens(d));
-        // TODO strokeWidth not correct with batik
-        strokeWidth = strokeWidth * Math.sqrt(1.0 * (pixmap.getWidth() * pixmap.getHeight()) / (width * height));
+        double strokeRadius = strokeWidth * Math.sqrt(1.0 * (pixmap.getWidth() * pixmap.getHeight()) / (width * height))/2;
 
         Vector2 currentPosition = new Vector2(0, 0);// Current position. Used by commands.
         Vector2 initialPoint = new Vector2(0, 0);// Current position. Used by command 'M'.
@@ -75,24 +74,24 @@ public class Svg2Pixmap {
                 initialPoint.y = currentPosition.y = (Float.parseFloat(params.get(1))) / height * pixmap.getHeight();
             }
             if (newCommand == 'Z') {
-                H.curveTo(pixmap, new Vector2[]{currentPosition, initialPoint}, stroke, (int) Math.round(strokeWidth));
+                H.curveTo(pixmap, new Vector2[]{currentPosition, initialPoint}, stroke, (int) Math.round(strokeRadius));
             }
             if (newCommand == 'L') {
                 float x2 = Float.parseFloat(params.get(0)) / width * pixmap.getWidth(), y2 = Float.parseFloat(params.get(1)) / height * pixmap.getHeight();
-                H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2(x2, y2)}, stroke, (int) Math.round(strokeWidth));
+                H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2(x2, y2)}, stroke, (int) Math.round(strokeRadius));
 
                 currentPosition.x = x2;
                 currentPosition.y = y2;
             }
             if (newCommand == 'H') {
                 float x2 = Float.parseFloat(params.get(0)) / width * pixmap.getWidth();
-                H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2(x2, currentPosition.y)}, stroke, (int) Math.round(strokeWidth));
+                H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2(x2, currentPosition.y)}, stroke, (int) Math.round(strokeRadius));
 
                 currentPosition.x = x2;
             }
             if (newCommand == 'V') {
                 float y2 = Float.parseFloat(params.get(0)) / height * pixmap.getHeight();
-                H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2(currentPosition.x, y2)}, stroke, (int) Math.round(strokeWidth));
+                H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2(currentPosition.x, y2)}, stroke, (int) Math.round(strokeRadius));
 
                 currentPosition.y = y2;
             }
@@ -101,7 +100,7 @@ public class Svg2Pixmap {
                 float x2 = Float.parseFloat(params.get(2)) / width * pixmap.getWidth(), y2 = Float.parseFloat(params.get(3)) / height * pixmap.getHeight();
                 float x = Float.parseFloat(params.get(4)) / width * pixmap.getWidth(), y = Float.parseFloat(params.get(5)) / height * pixmap.getHeight();
                 lastCPoint = new Vector2(x2, y2);
-                H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2(x1, y1), lastCPoint, new Vector2(x, y)}, stroke, (int) Math.round(strokeWidth));
+                H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2(x1, y1), lastCPoint, new Vector2(x, y)}, stroke, (int) Math.round(strokeRadius));
 
                 currentPosition.x = x;
                 currentPosition.y = y;
@@ -118,7 +117,7 @@ public class Svg2Pixmap {
                     y1 = y2;
                 }
                 lastCPoint = new Vector2(x2, y2);
-                H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2(x1, y1), lastCPoint, new Vector2(x, y)}, stroke, (int) Math.round(strokeWidth));
+                H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2(x1, y1), lastCPoint, new Vector2(x, y)}, stroke, (int) Math.round(strokeRadius));
 
                 currentPosition.x = x;
                 currentPosition.y = y;
@@ -127,7 +126,7 @@ public class Svg2Pixmap {
                 float x1 = Float.parseFloat(params.get(0)) / width * pixmap.getWidth(), y1 = Float.parseFloat(params.get(1)) / height * pixmap.getHeight();
                 float x = Float.parseFloat(params.get(2)) / width * pixmap.getWidth(), y = Float.parseFloat(params.get(3)) / height * pixmap.getHeight();
                 lastQPoint = new Vector2(x1, y1);
-                H.curveTo(pixmap, new Vector2[]{currentPosition, lastQPoint, new Vector2(x, y)}, stroke, (int) Math.round(strokeWidth));
+                H.curveTo(pixmap, new Vector2[]{currentPosition, lastQPoint, new Vector2(x, y)}, stroke, (int) Math.round(strokeRadius));
 
                 currentPosition.x = x;
                 currentPosition.y = y;
@@ -143,7 +142,7 @@ public class Svg2Pixmap {
                     y1 = y;
                 }
                 lastQPoint = new Vector2(x1, y1);
-                H.curveTo(pixmap, new Vector2[]{currentPosition, lastQPoint, new Vector2(x, y)}, stroke, (int) Math.round(strokeWidth));
+                H.curveTo(pixmap, new Vector2[]{currentPosition, lastQPoint, new Vector2(x, y)}, stroke, (int) Math.round(strokeRadius));
 
                 currentPosition.x = x;
                 currentPosition.y = y;
@@ -161,12 +160,12 @@ public class Svg2Pixmap {
                     /*
                     String cmd = "M " + currentPosition.x + " " + currentPosition.y + " " +
                             "C " + curve[0].x + " " + curve[0].y + " " + curve[1].x + " " + curve[1].y + " " + curve[2].x + " " + curve[2].y + " ";
-                    path2Pixmap(pixmap.getWidth(), pixmap.getHeight(), cmd, fill, stroke, strokeWidth, pixmap);
+                    path2Pixmap(pixmap.getWidth(), pixmap.getHeight(), cmd, fill, stroke, strokeRadius, pixmap);
                     */
                     ArrayList<Vector2> points = new ArrayList<>(4);
                     points.add(currentPosition);
                     points.addAll(Arrays.asList(curve));
-                    H.curveTo(pixmap, points.toArray(new Vector2[4]), stroke, (int) Math.round(strokeWidth));
+                    H.curveTo(pixmap, points.toArray(new Vector2[4]), stroke, (int) Math.round(strokeRadius));
                     currentPosition.x = curve[2].x;
                     currentPosition.y = curve[2].y;
                 }
