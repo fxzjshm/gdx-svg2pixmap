@@ -54,6 +54,7 @@ public class TestCore extends ApplicationAdapter {
     public Stage stage;
 
     public boolean fail = false, finished = false;
+    public Throwable throwable;
 
     @Override
     public void create() {
@@ -64,6 +65,7 @@ public class TestCore extends ApplicationAdapter {
             testStandardComparison();
         } catch (Throwable t) {
             t.printStackTrace();
+            throwable = t;
             fail = true;
         } finally {
             finished = true;

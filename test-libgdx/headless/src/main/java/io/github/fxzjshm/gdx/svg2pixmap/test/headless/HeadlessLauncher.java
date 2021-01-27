@@ -15,8 +15,9 @@ public class HeadlessLauncher {
     public static void main(String[] args) {
         TestCore testCore = new TestCore();
         createApplication(testCore);
-        while (!testCore.finished)Thread.yield();
-        if (testCore.fail) throw new Error("Failed. Use task ':run' for detail.");
+        while (!testCore.finished) Thread.yield();
+        if (testCore.fail)
+            throw new Error("Failed. Use task ':run' for detail.", testCore.throwable);
     }
 
     private static Application createApplication(ApplicationListener applicationListener) {
