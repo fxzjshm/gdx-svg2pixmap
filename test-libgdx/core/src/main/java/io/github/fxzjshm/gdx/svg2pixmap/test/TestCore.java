@@ -167,14 +167,14 @@ public class TestCore extends ApplicationAdapter {
                 long time = TimeUtils.millis();
                 Svg2Pixmap.svg2PixmapJSNI(svgFiles[j].readString(), (int) (width * outputScale), (int) (height * outputScale), pixmap -> {
                     results1[j] = pixmap;
-                    Gdx.app.debug("testSvg2Pixmap", TimeUtils.millis() - time + "ms");
+                    Gdx.app.debug("testSvg2Pixmap", svgFiles[j].name() + " " + (TimeUtils.millis() - time) + "ms");
                     count.incrementAndGet();
                 });
             } else {
                 asyncExecutor.submit(() -> {
                     long time = TimeUtils.millis();
                     results1[j] = Svg2Pixmap.svg2Pixmap(svgFiles[j].readString(), (int) (width * outputScale), (int) (height * outputScale));
-                    Gdx.app.debug("testSvg2Pixmap", TimeUtils.millis() - time + "ms");
+                    Gdx.app.debug("testSvg2Pixmap", svgFiles[j].name() + " " + (TimeUtils.millis() - time) + "ms");
                     count.incrementAndGet();
                     return null;
                 });
