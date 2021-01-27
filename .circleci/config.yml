@@ -40,7 +40,7 @@ jobs:
       - run: sudo sh -c 'curl https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -'
 
       # run tests!
-      - run: gradle check test-libgdx:gwt:compileGwt --no-daemon
+      - run: gradle check test-libgdx:gwt:draftCompileGwt --no-daemon
       - run:
           name: Save test results 
           command: |
