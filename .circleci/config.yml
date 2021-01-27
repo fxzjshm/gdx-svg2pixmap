@@ -23,6 +23,8 @@ jobs:
     
     steps:
       - checkout
+      - run: git submodule sync --recursive
+      - run: git submodule update --recursive --init
 
       # Download and cache dependencies
       - restore_cache:
@@ -31,7 +33,6 @@ jobs:
           # fallback to using the latest cache if no exact match is found
           - v1-dependencies-
 
-      - run: sudo apt-get update
       # Enable HTTPS for apt.
       - run: sudo apt-get update
       - run: sudo apt-get install apt-transport-https
