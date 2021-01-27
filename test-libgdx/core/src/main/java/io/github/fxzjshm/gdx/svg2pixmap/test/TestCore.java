@@ -143,7 +143,9 @@ public class TestCore extends ApplicationAdapter {
     }
 
     public static void testPath2Pixmap() {
+        long time = TimeUtils.millis();
         Pixmap pixmap = Svg2Pixmap.path2Pixmap(32, 32, "M16 2 L30 16 16 30 16 16 2 30 2 2 16 16 Z", new Color(0.2f, 0.3f, 0.4f, 0.5f), new Color(0.7f, 0.8f, 0.9f, 1), 0.1, new Pixmap(320, 320, Pixmap.Format.RGB565));
+        Gdx.app.debug("testPath2Pixmap", TimeUtils.millis() - time + "ms");
         // PixmapIO.writePNG(Gdx.files.external("svgtest.png"), pixmap);
     }
 
