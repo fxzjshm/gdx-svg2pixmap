@@ -18,7 +18,7 @@ jobs:
 
     environment:
       # Customize the JVM maximum heap limit
-      JVM_OPTS: -Xmx3200m
+      JVM_OPTS: -Xmx3840m
       TERM: dumb
     
     steps:
@@ -40,7 +40,7 @@ jobs:
       - run: sudo sh -c 'curl https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -'
 
       # run tests!
-      - run: gradle check test-libgdx:gwt:compileGwt
+      - run: gradle check test-libgdx:gwt:compileGwt --no-daemon
       - run:
           name: Save test results 
           command: |
