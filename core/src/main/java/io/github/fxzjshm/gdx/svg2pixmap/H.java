@@ -2,14 +2,20 @@ package io.github.fxzjshm.gdx.svg2pixmap;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.math.GridPoint2;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.GdxRuntimeException;
+import com.badlogic.gdx.utils.Null;
+import com.badlogic.gdx.utils.Queue;
 import com.badlogic.gdx.utils.StringBuilder;
 import com.badlogic.gdx.utils.XmlReader;
 import com.badlogic.gdx.utils.async.AsyncExecutor;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+
+import static io.github.fxzjshm.gdx.svg2pixmap.Svg2Pixmap.defaultColor;
 
 /**
  * Helpful(-less) methods.
@@ -123,6 +129,7 @@ public class H {
         colorMap.put("moccasin", color8BitsToFloat(255, 228, 181));
         colorMap.put("navajowhite", color8BitsToFloat(255, 222, 173));
         colorMap.put("navy", color8BitsToFloat(0, 0, 128));
+        colorMap.put("none", Color.CLEAR);
         colorMap.put("oldlace", color8BitsToFloat(253, 245, 230));
         colorMap.put("olive", color8BitsToFloat(128, 128, 0));
         colorMap.put("olivedrab", color8BitsToFloat(107, 142, 35));
@@ -208,7 +215,7 @@ public class H {
         if (c == 'M' || c == 'L' || c == 'T') return 2;
         if (c == 'H' || c == 'V') return 1;
         if (c == 'Z') return 0;
-        throw new IllegalArgumentException("Wrong command " + c);
+        throw new IllegalArgumentException("Unknown command " + c);
     }
 
     /**
@@ -236,8 +243,26 @@ public class H {
      *
      * @param pixmap you want to draw on
      * @param points contains points that control the curve.
+     * @see H#curveTo(Pixmap, Vector2[], Color, int, boolean[][])
+     * @deprecated not recording shape of the curve
      */
+    @Deprecated
     public static void curveTo(Pixmap pixmap, Vector2[] points, Color stroke, int strokeWidth) {
+        curveTo(pixmap, points, stroke, strokeWidth, null);
+    }
+
+    /**
+     * Draw a Bezier curve.
+     * See https://en.wikipedia.org/wiki/B%C3%A9zier_curve
+     *
+     * @param pixmap you want to draw on
+     * @param points contains points that control the curve.
+     * @param border a boolean[][] to record shape of the curve, with stroke-width == 1
+     *               this is designed for stroke-width == 0 situation
+     * @see H#curveTo(Pixmap, Vector2[], Color, int)
+     * @see H#drawCurve(Pixmap, Vector2[], Color, int, boolean[][])
+     */
+    public static void curveTo(Pixmap pixmap, Vector2[] points, Color stroke, int strokeWidth, @Null boolean[][] border) {
         int n = points.length - 1;
         int w = pixmap.getWidth(), h = pixmap.getHeight();
         double minx = w, maxx = 0, miny = h, maxy = 0;
@@ -257,13 +282,44 @@ public class H {
                 x += k * points[i].x;
                 y += k * points[i].y;
             }
+            int p = (int) Math.round(x), q = (int) Math.round(y);
             pixmap.setColor(stroke);
             // pixmap.fillCircle((int) Math.round(x), (int) Math.round(y), strokeWidth); // this performs worse?
             for (int i = 0; i < strokeWidth; i++) {
-                pixmap.drawCircle((int) Math.round(x), (int) Math.round(y), i);
+                pixmap.drawCircle(p, q, i);
+            }
+            p = Math.max(0, p);
+            p = Math.min(w - 1, p);
+            q = Math.max(0, q);
+            q = Math.min(h - 1, q);
+            if (border != null) {
+                border[p][q] = true;
             }
         }
+    }
 
+    /**
+     * @param border marks {@code true} if the position was drawn something on
+     * @see H#curveTo(Pixmap, Vector2[], Color, int, boolean[][])
+     */
+    public static void drawCurve(Pixmap pixmap, Vector2[] points, Color stroke, int strokeWidth, boolean[][] border) {
+        if (strokeWidth == 0) {
+            curveTo(pixmap, points, stroke, strokeWidth, border);
+        } else {
+            int w = pixmap.getWidth(), h = pixmap.getHeight(), color;
+            Pixmap tmp = new Pixmap(w, h, pixmap.getFormat());
+            curveTo(tmp, points, stroke, strokeWidth, border);
+            for (int i = 0; i < w; i++) {
+                for (int j = 0; j < h; j++) {
+                    color = tmp.getPixel(i, j);
+                    if (color != Color.rgba8888(Color.CLEAR)) {
+                        border[i][j] = true;
+                    }
+                    pixmap.drawPixel(i, j, color);
+                }
+            }
+            tmp.dispose();
+        }
     }
 
     // @formatter:off
@@ -285,6 +341,63 @@ public class H {
         return C(x - 1, y - 1) + C(x - 1, y);
     }
 
+    public static int[] dx = {1, 0, -1, 0},
+            dy = {0, 1, 0, -1};
+
+    public static void fillColor(Pixmap pixmap, boolean[][] border, Color fill) {
+        if (fill == null || fill.equals(Color.CLEAR)) return;
+        int w = pixmap.getWidth(), h = pixmap.getHeight();
+        Queue<GridPoint2> q = new Queue<>();
+        Array<GridPoint2> list = new Array<>(w * h);
+
+        boolean[][] vis = new boolean[border.length][border[0].length];
+        GridPoint2 p;
+        int color = Color.rgba8888(fill);
+
+        int x, y;
+
+        for (int i = 0; i < w; i++) {
+            for (int j = 0; j < h; j++) {
+                if (vis[i][j] || border[i][j]) continue;
+                boolean isOverflow = false;
+                q.addLast(new GridPoint2(i, j));
+                while (q.notEmpty()) {
+                    p = q.removeFirst();
+                    if (vis[p.x][p.y]) {
+                        continue;
+                    }
+                    vis[p.x][p.y] = true;
+                    if (border[p.x][p.y]) {
+                        continue;
+                    }
+
+                    for (int t = 0; t < dx.length; t++) {
+                        x = p.x + dx[t];
+                        y = p.y + dy[t];
+                        if (x < 0 || x >= w || y < 0 || y >= h) {
+                            // not border but touch the edge of the pixmap, should be outside the border
+                            isOverflow = true;
+                            continue;
+                        }
+                        if (!vis[x][y]) {
+                            if ((!border[x][y])) {
+                                q.addLast(new GridPoint2(x, y));
+                            }
+                        }
+                    }
+                    if (!border[p.x][p.y]) {
+                        list.add(p);
+                    }
+                }
+                if (!isOverflow) {
+                    for (GridPoint2 point : list) {
+                        pixmap.drawPixel(point.x, point.y, color);
+                    }
+                }
+                list.clear();
+            }
+        }
+    }
 
     public static double svgReadDouble(String s, double k) {
         if (s.endsWith("%"))
@@ -292,11 +405,31 @@ public class H {
         return Double.parseDouble(s);
     }
 
+    @Deprecated
     public static Color svgReadColor(String color, Color currentColor) {
         // TODO implement
-        if (color.equals("currentcolor")) return currentColor;
+        if (color.equals("currentColor")) return currentColor;
         if (color.startsWith("#")) return Color.valueOf(color.replace("#", ""));
         return colorMap.get(color);
+    }
+
+    public static Color svgReadColor(XmlReader.Element element, String property) {
+        try {
+            String color = getAttribute(element, property);
+            if (color.toLowerCase().equals("currentcolor")) {
+                do {
+                    color = getAttribute(element, "color");
+                    element = element.getParent();
+                } while (color.toLowerCase().equals("currentcolor"));
+            }
+            if (color.equals("none")) {
+                return Color.CLEAR;
+            }
+            if (color.startsWith("#")) return Color.valueOf(color.replace("#", ""));
+            return colorMap.get(color);
+        } catch (NullPointerException | GdxRuntimeException ignored) {
+            return defaultColor;
+        }
     }
 
     public static Color color8BitsToFloat(int r, int g, int b, int a) {
@@ -313,12 +446,35 @@ public class H {
         }
         try {
             return element.getAttribute(attribute);
-        } catch (GdxRuntimeException gre) {
+        } catch (GdxRuntimeException | NullPointerException exception) {
             try {
                 return getAttribute(element.getParent(), attribute);
-            } catch (NullPointerException npe) {
+            } catch (GdxRuntimeException | NullPointerException e) {
                 throw new GdxRuntimeException("No attribute \"" + attribute + "\" in element \"" + element.toString() + "\" or its parents");
             }
+        }
+    }
+
+    public static class SVGBasicInfo {
+        int x_min, y_min;
+        int width, height;
+        Color fill, stroke;
+        double strokeWidth;
+
+        public SVGBasicInfo(XmlReader.Element element) {
+            try {
+                String[] viewbox = H.getAttribute(element, "viewBox").split(" ");
+                x_min = Integer.parseInt(viewbox[0]);
+                y_min = Integer.parseInt(viewbox[1]);
+                width = Integer.parseInt(viewbox[2]);
+                height = Integer.parseInt(viewbox[3]);
+            } catch (GdxRuntimeException | NullPointerException ignored) {
+                width = Integer.parseInt(H.getAttribute(element, "width"));
+                height = Integer.parseInt(H.getAttribute(element, "height"));
+            }
+            fill = H.svgReadColor(element, "fill");
+            stroke = H.svgReadColor(element, "stroke");
+            strokeWidth = H.svgReadDouble(H.getAttribute(element, "stroke-width"), Math.sqrt(width * width + height * height));
         }
     }
 

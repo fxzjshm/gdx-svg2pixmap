@@ -5,7 +5,6 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.utils.XmlReader;
 import com.badlogic.gdx.utils.async.ThreadUtils;
 
@@ -24,14 +23,16 @@ public class Svg2Pixmap {
      * TODO use "signed distance field" method
      * This affects {@link Svg2Pixmap#svg2Pixmap} but not {@link Svg2Pixmap#path2Pixmap}.
      */
-    public static int generateScale = 3;
+    public static int generateScale = 2;
+
+    public static Color defaultColor = Color.BLACK;
 
     /**
      * Convert a SVG {@code <path />} element into a {@link Pixmap}.
      * Will scale if (width != {@link Pixmap#getWidth()} || height != {@link Pixmap#getHeight()}).
      *
-     * @param width       the origin width of the SVG file.
-     * @param height      the origin height of the SVG file.
+     * @param width       the origin width of the SVG file, maybe defined by viewbox
+     * @param height      the origin height of the SVG file, maybe defined by viewbox
      * @param d           the property d of the origin path element
      * @param fill        the color to fill in the shape.
      * @param stroke      the color of th path
@@ -43,12 +44,13 @@ public class Svg2Pixmap {
         checkGWT();
 
         StringTokenizer stringTokenizer = new StringTokenizer(H.splitMixedTokens(d));
-        double strokeRadius = strokeWidth * Math.sqrt(1.0 * (pixmap.getWidth() * pixmap.getHeight()) / (width * height)) / 2;
+        int strokeRadius = (int) Math.round(strokeWidth * Math.sqrt(1.0 * (pixmap.getWidth() * pixmap.getHeight()) / (width * height)) / 2);
 
         Vector2 currentPosition = new Vector2(0, 0);// Current position. Used by commands.
         Vector2 initialPoint = new Vector2(0, 0);// Current position. Used by command 'M'.
         Vector2 lastCPoint = null; // Last control point of last 'C' or 'S' command.
         Vector2 lastQPoint = null; // Last control point of last 'Q' or 'T' command.
+        boolean[][] border = new boolean[pixmap.getWidth()][pixmap.getHeight()]; // int[][] to save border position, assuming initial value are all false
 
         char lastCommand = 0; // Last command.
         LinkedList<String> params = new LinkedList<String>(); // Real parameters.
@@ -88,24 +90,24 @@ public class Svg2Pixmap {
                 initialPoint.y = currentPosition.y = (Float.parseFloat(params.get(1))) / height * pixmap.getHeight();
             }
             if (newCommand == 'Z') {
-                H.curveTo(pixmap, new Vector2[]{currentPosition, initialPoint}, stroke, (int) Math.round(strokeRadius));
+                H.drawCurve(pixmap, new Vector2[]{currentPosition, initialPoint}, stroke, strokeRadius, border);
             }
             if (newCommand == 'L') {
                 float x2 = Float.parseFloat(params.get(0)) / width * pixmap.getWidth(), y2 = Float.parseFloat(params.get(1)) / height * pixmap.getHeight();
-                H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2(x2, y2)}, stroke, (int) Math.round(strokeRadius));
+                H.drawCurve(pixmap, new Vector2[]{currentPosition, new Vector2(x2, y2)}, stroke, strokeRadius, border);
 
                 currentPosition.x = x2;
                 currentPosition.y = y2;
             }
             if (newCommand == 'H') {
                 float x2 = Float.parseFloat(params.get(0)) / width * pixmap.getWidth();
-                H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2(x2, currentPosition.y)}, stroke, (int) Math.round(strokeRadius));
+                H.drawCurve(pixmap, new Vector2[]{currentPosition, new Vector2(x2, currentPosition.y)}, stroke, strokeRadius, border);
 
                 currentPosition.x = x2;
             }
             if (newCommand == 'V') {
                 float y2 = Float.parseFloat(params.get(0)) / height * pixmap.getHeight();
-                H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2(currentPosition.x, y2)}, stroke, (int) Math.round(strokeRadius));
+                H.drawCurve(pixmap, new Vector2[]{currentPosition, new Vector2(currentPosition.x, y2)}, stroke, strokeRadius, border);
 
                 currentPosition.y = y2;
             }
@@ -114,7 +116,7 @@ public class Svg2Pixmap {
                 float x2 = Float.parseFloat(params.get(2)) / width * pixmap.getWidth(), y2 = Float.parseFloat(params.get(3)) / height * pixmap.getHeight();
                 float x = Float.parseFloat(params.get(4)) / width * pixmap.getWidth(), y = Float.parseFloat(params.get(5)) / height * pixmap.getHeight();
                 lastCPoint = new Vector2(x2, y2);
-                H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2(x1, y1), lastCPoint, new Vector2(x, y)}, stroke, (int) Math.round(strokeRadius));
+                H.drawCurve(pixmap, new Vector2[]{currentPosition, new Vector2(x1, y1), lastCPoint, new Vector2(x, y)}, stroke, strokeRadius, border);
 
                 currentPosition.x = x;
                 currentPosition.y = y;
@@ -131,7 +133,7 @@ public class Svg2Pixmap {
                     y1 = y2;
                 }
                 lastCPoint = new Vector2(x2, y2);
-                H.curveTo(pixmap, new Vector2[]{currentPosition, new Vector2(x1, y1), lastCPoint, new Vector2(x, y)}, stroke, (int) Math.round(strokeRadius));
+                H.drawCurve(pixmap, new Vector2[]{currentPosition, new Vector2(x1, y1), lastCPoint, new Vector2(x, y)}, stroke, strokeRadius, border);
 
                 currentPosition.x = x;
                 currentPosition.y = y;
@@ -140,7 +142,7 @@ public class Svg2Pixmap {
                 float x1 = Float.parseFloat(params.get(0)) / width * pixmap.getWidth(), y1 = Float.parseFloat(params.get(1)) / height * pixmap.getHeight();
                 float x = Float.parseFloat(params.get(2)) / width * pixmap.getWidth(), y = Float.parseFloat(params.get(3)) / height * pixmap.getHeight();
                 lastQPoint = new Vector2(x1, y1);
-                H.curveTo(pixmap, new Vector2[]{currentPosition, lastQPoint, new Vector2(x, y)}, stroke, (int) Math.round(strokeRadius));
+                H.drawCurve(pixmap, new Vector2[]{currentPosition, lastQPoint, new Vector2(x, y)}, stroke, strokeRadius, border);
 
                 currentPosition.x = x;
                 currentPosition.y = y;
@@ -156,7 +158,7 @@ public class Svg2Pixmap {
                     y1 = y;
                 }
                 lastQPoint = new Vector2(x1, y1);
-                H.curveTo(pixmap, new Vector2[]{currentPosition, lastQPoint, new Vector2(x, y)}, stroke, (int) Math.round(strokeRadius));
+                H.drawCurve(pixmap, new Vector2[]{currentPosition, lastQPoint, new Vector2(x, y)}, stroke, strokeRadius, border);
 
                 currentPosition.x = x;
                 currentPosition.y = y;
@@ -179,7 +181,7 @@ public class Svg2Pixmap {
                     ArrayList<Vector2> points = new ArrayList<>(4);
                     points.add(currentPosition);
                     points.addAll(Arrays.asList(curve));
-                    H.curveTo(pixmap, points.toArray(new Vector2[4]), stroke, (int) Math.round(strokeRadius));
+                    H.drawCurve(pixmap, points.toArray(new Vector2[4]), stroke, strokeRadius, border);
                     currentPosition.x = curve[2].x;
                     currentPosition.y = curve[2].y;
                 }
@@ -188,14 +190,17 @@ public class Svg2Pixmap {
                 currentPosition.y = y;
             }
 
-            //TODO implement fill
-
             // Clear useless control points
             if (newCommand != 'Q' && newCommand != 'T') lastQPoint = null;
             if (newCommand != 'C' && newCommand != 'S') lastCPoint = null;
 
             params.clear();
         }
+
+        if (fill != null && !fill.equals(Color.CLEAR)) {
+            H.fillColor(pixmap, border, fill);
+        }
+
         return pixmap;
     }
 
@@ -277,7 +282,6 @@ public class Svg2Pixmap {
     public static Pixmap svg2PixmapDirectDraw(String fileContent, int width, int height) {
         XmlReader reader = new XmlReader();
         XmlReader.Element root = reader.parse(fileContent);
-        double strokeWidth = -1;
 
         Pixmap pixmap = new Pixmap(width, height, Pixmap.Format.RGBA8888);
         for (int i = 0; i < root.getChildCount(); i++) {
@@ -313,58 +317,26 @@ public class Svg2Pixmap {
     }
 
     public static void path(XmlReader.Element element, Pixmap pixmap) {
-        int width = Integer.parseInt(H.getAttribute(element, "width"));
-        int height = Integer.parseInt(H.getAttribute(element, "height"));
-        Color fill = Color.BLACK, stroke = Color.BLACK;
-        try {
-            fill = H.svgReadColor(H.getAttribute(element, "fill"), fill);
-        } catch (NullPointerException ignored) {
-        }
-        try {
-            stroke = H.svgReadColor(H.getAttribute(element, "stroke"), stroke);
-        } catch (NullPointerException ignored) {
-        } catch (GdxRuntimeException gre) {
-            stroke = Color.CLEAR;
-        }
-        path2Pixmap(width, height, H.getAttribute(element, "d"), fill, stroke, H.svgReadDouble(H.getAttribute(element, "stroke-width"), Math.sqrt(width * width + height * height)), pixmap);
+        H.SVGBasicInfo info = new H.SVGBasicInfo(element);
+        String d = H.getAttribute(element, "d");
+
+        path2Pixmap(info.width, info.height, d, info.fill, info.stroke, info.strokeWidth, pixmap);
     }
 
     public static void circle(XmlReader.Element element, Pixmap pixmap) {
-        int width = Integer.parseInt(H.getAttribute(element, "width"));
-        int height = Integer.parseInt(H.getAttribute(element, "height"));
-        Color fill = Color.BLACK, stroke = Color.BLACK;
-        try {
-            fill = H.svgReadColor(H.getAttribute(element, "fill"), fill);
-        } catch (NullPointerException ignored) {
-        }
-        try {
-            stroke = H.svgReadColor(H.getAttribute(element, "stroke"), stroke);
-        } catch (NullPointerException ignored) {
-        } catch (GdxRuntimeException gre) {
-            stroke = Color.CLEAR;
-        }
-        double cx = Double.parseDouble(H.getAttribute(element, "cx")), cy = Double.parseDouble(H.getAttribute(element, "cy")), r = Double.parseDouble(H.getAttribute(element, "r"));
+        H.SVGBasicInfo info = new H.SVGBasicInfo(element);
+        double cx = Double.parseDouble(H.getAttribute(element, "cx")),
+                cy = Double.parseDouble(H.getAttribute(element, "cy")),
+                r = Double.parseDouble(H.getAttribute(element, "r"));
 
         String d = "M " + (cx - r) + " " + cy + " " +
                 "A " + r + " " + r + " 0 1 1 " + (cx + r) + " " + cy + " " +
                 "A " + r + " " + r + " 0 1 1 " + (cx - r) + " " + cy + " ";
-        path2Pixmap(width, height, d, fill, stroke, H.svgReadDouble(H.getAttribute(element, "stroke-width"), Math.sqrt(width * width + height * height)), pixmap);
+        path2Pixmap(info.width, info.height, d, info.fill, info.stroke, info.strokeWidth, pixmap);
     }
 
     public static void ellipse(XmlReader.Element element, Pixmap pixmap) {
-        int width = Integer.parseInt(H.getAttribute(element, "width"));
-        int height = Integer.parseInt(H.getAttribute(element, "height"));
-        Color fill = Color.BLACK, stroke = Color.BLACK;
-        try {
-            fill = H.svgReadColor(H.getAttribute(element, "fill"), fill);
-        } catch (NullPointerException ignored) {
-        }
-        try {
-            stroke = H.svgReadColor(H.getAttribute(element, "stroke"), stroke);
-        } catch (NullPointerException ignored) {
-        } catch (GdxRuntimeException gre) {
-            stroke = Color.CLEAR;
-        }
+        H.SVGBasicInfo info = new H.SVGBasicInfo(element);
         double cx = Double.parseDouble(H.getAttribute(element, "cx")),
                 cy = Double.parseDouble(H.getAttribute(element, "cy")),
                 rx = Double.parseDouble(H.getAttribute(element, "rx")),
@@ -373,7 +345,7 @@ public class Svg2Pixmap {
         String d = "M " + (cx - rx) + " " + cy + " " +
                 "A " + rx + " " + ry + " 0 1 1 " + (cx + rx) + " " + cy + " " +
                 "A " + rx + " " + ry + " 0 1 1 " + (cx - rx) + " " + cy + " ";
-        path2Pixmap(width, height, d, fill, stroke, H.svgReadDouble(H.getAttribute(element, "stroke-width"), Math.sqrt(width * width + height * height)), pixmap);
+        path2Pixmap(info.width, info.height, d, info.fill, info.stroke, info.strokeWidth, pixmap);
     }
 
     protected static void checkGWT() {
