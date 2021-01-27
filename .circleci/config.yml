@@ -18,11 +18,13 @@ jobs:
 
     environment:
       # Customize the JVM maximum heap limit
-      JVM_OPTS: -Xmx3200m
+      JVM_OPTS: -Xmx3840m
       TERM: dumb
     
     steps:
       - checkout
+      - run: git submodule sync --recursive
+      - run: git submodule update --recursive --init
 
       # Download and cache dependencies
       - restore_cache:
@@ -31,7 +33,6 @@ jobs:
           # fallback to using the latest cache if no exact match is found
           - v1-dependencies-
 
-      - run: sudo apt-get update
       # Enable HTTPS for apt.
       - run: sudo apt-get update
       - run: sudo apt-get install apt-transport-https
@@ -39,7 +40,7 @@ jobs:
       - run: sudo sh -c 'curl https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -'
 
       # run tests!
-      - run: gradle check test-libgdx:gwt:compileGwt
+      - run: gradle check test-libgdx:gwt:compileGwt --no-daemon
       - run:
           name: Save test results 
           command: |
