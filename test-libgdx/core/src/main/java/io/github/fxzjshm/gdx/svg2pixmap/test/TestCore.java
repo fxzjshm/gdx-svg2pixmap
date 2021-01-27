@@ -69,11 +69,12 @@ public class TestCore extends ApplicationAdapter {
             finished = true;
         }
 
-        if(Gdx.app.getType()!= Application.ApplicationType.HeadlessDesktop){
+        if (Gdx.app.getType() != Application.ApplicationType.HeadlessDesktop) {
             createUI();
         }
     }
-    public void createUI(){
+
+    public void createUI() {
         // none = new Pixmap(1, 1, Pixmap.Format.Alpha);
         none = new Pixmap(Gdx.files.internal("libgdx.png"));
         pixmap1 = pixmap2 = none;
@@ -159,16 +160,29 @@ public class TestCore extends ApplicationAdapter {
         AtomicInteger count = new AtomicInteger(0);
         for (int i = 0; i < svgFiles.length; i++) {
             int j = i;
-            asyncExecutor.submit(() -> {
+
+            if (Gdx.app.getType().equals(Application.ApplicationType.WebGL)) {
                 long time = TimeUtils.millis();
-                results1[j] = Svg2Pixmap.svg2Pixmap(svgFiles[j].readString(), (int) (width * outputScale), (int) (height * outputScale));
-                Gdx.app.debug("testSvg2Pixmap", TimeUtils.millis() - time + "ms");
-                count.incrementAndGet();
-                return null;
-            });
+                Svg2Pixmap.svg2PixmapJSNI(svgFiles[j].readString(), (int) (width * outputScale), (int) (height * outputScale), pixmap -> {
+                    results1[j] = pixmap;
+                    Gdx.app.debug("testSvg2Pixmap", TimeUtils.millis() - time + "ms");
+                    count.incrementAndGet();
+                });
+            } else {
+                asyncExecutor.submit(() -> {
+                    long time = TimeUtils.millis();
+                    results1[j] = Svg2Pixmap.svg2Pixmap(svgFiles[j].readString(), (int) (width * outputScale), (int) (height * outputScale));
+                    Gdx.app.debug("testSvg2Pixmap", TimeUtils.millis() - time + "ms");
+                    count.incrementAndGet();
+                    return null;
+                });
+            }
+
         }
-        while (count.get() < svgFiles.length) {
-            ThreadUtils.yield();
+        if (!Gdx.app.getType().equals(Application.ApplicationType.WebGL)) {
+            while (count.get() < svgFiles.length) {
+                ThreadUtils.yield();
+            }
         }
     }
 

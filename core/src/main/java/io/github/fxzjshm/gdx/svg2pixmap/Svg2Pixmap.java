@@ -1,5 +1,6 @@
 package io.github.fxzjshm.gdx.svg2pixmap;
 
+import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
@@ -39,6 +40,8 @@ public class Svg2Pixmap {
      * @return Drawn pixmap.
      */
     public static Pixmap path2Pixmap(int width, int height, String d, Color fill, Color stroke, double strokeWidth, Pixmap pixmap) {
+        checkGWT();
+
         StringTokenizer stringTokenizer = new StringTokenizer(H.splitMixedTokens(d));
         double strokeRadius = strokeWidth * Math.sqrt(1.0 * (pixmap.getWidth() * pixmap.getHeight()) / (width * height)) / 2;
 
@@ -204,6 +207,8 @@ public class Svg2Pixmap {
      * @param height      The height of Pixmap.
      */
     public static Pixmap svg2Pixmap(String fileContent, int width, int height) {
+        checkGWT();
+
         if (generateScale == 1) return svg2PixmapDirectDraw(fileContent, width, height);
 
         final int scaledWidth = width * generateScale, scaledHeight = height * generateScale,
@@ -245,6 +250,29 @@ public class Svg2Pixmap {
         scaledPixmap.dispose();
         return pixmap;
     }
+
+    /**
+     * Convert SVG file to Pixmap using browser apis in GWT mode.
+     * Obviously, do not call this on other backends.
+     *
+     * @param callback due to image loading limitations, results cannot be provided instantly,
+     *                 a callback function/method is required to return the result.
+     * @see ICallback
+     */
+    // @off
+    // @formatter:off
+    public static native void svg2PixmapJSNI(String fileContent, int width, int height, ICallback callback)/*-{
+        var img = new Image();
+        img.src = 'data:image/svg+xml; charset=utf8, ' + encodeURIComponent(fileContent);
+        img.width = width;
+        img.height = height;
+        img.onload = function(){
+            var pixmap = @com.badlogic.gdx.graphics.Pixmap::new(Lcom/google/gwt/dom/client/ImageElement;)(img);
+            callback.@io.github.fxzjshm.gdx.svg2pixmap.Svg2Pixmap.ICallback::onload(Lcom/badlogic/gdx/graphics/Pixmap;)(pixmap);
+        }
+    }-*/;
+    // @on
+    // @formatter:on
 
     public static Pixmap svg2PixmapDirectDraw(String fileContent, int width, int height) {
         XmlReader reader = new XmlReader();
@@ -346,6 +374,19 @@ public class Svg2Pixmap {
                 "A " + rx + " " + ry + " 0 1 1 " + (cx + rx) + " " + cy + " " +
                 "A " + rx + " " + ry + " 0 1 1 " + (cx - rx) + " " + cy + " ";
         path2Pixmap(width, height, d, fill, stroke, H.svgReadDouble(H.getAttribute(element, "stroke-width"), Math.sqrt(width * width + height * height)), pixmap);
+    }
+
+    protected static void checkGWT() {
+        if (Gdx.app.getType().equals(Application.ApplicationType.WebGL)) {
+            Gdx.app.error("Svg2Pixmap", "Due to performance issue, in GWT mode please use functions with suffix -JSNI instead.");
+        }
+    }
+
+    /**
+     * @see Svg2Pixmap#svg2PixmapJSNI(String, int, int, ICallback)
+     */
+    public interface ICallback {
+        void onload(Pixmap pixmap);
     }
 
 }
