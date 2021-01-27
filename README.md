@@ -1,5 +1,9 @@
 # gdx-svg2pixmap
-[![CircleCI](https://circleci.com/gh/fxzjshm/gdx-svg2pixmap.svg?style=svg)](https://circleci.com/gh/fxzjshm/gdx-svg2pixmap)  [![Build Status](https://travis-ci.org/fxzjshm/gdx-svg2pixmap.svg?branch=master)](https://travis-ci.org/fxzjshm/gdx-svg2pixmap)  
+
+[![CircleCI](https://circleci.com/gh/fxzjshm/gdx-svg2pixmap.svg?style=svg)](https://circleci.com/gh/fxzjshm/gdx-svg2pixmap)
+[![Build Status](https://travis-ci.org/fxzjshm/gdx-svg2pixmap.svg?branch=master)](https://travis-ci.org/fxzjshm/gdx-svg2pixmap)
+[![codecov](https://codecov.io/gh/fxzjshm/gdx-svg2pixmap/branch/master/graph/badge.svg?token=2l6iMIby7d)](https://codecov.io/gh/fxzjshm/gdx-svg2pixmap)  
+
 A runtime library to read svg file and convert it into a Pixmap in libGDX.
 
 **IMPORTANT NOTE:** This is only an incomplete hobby project. Due to limited time resource and personal reason (I'm not a CS or EE student), what I can do are only part of `<path>`-related things.  

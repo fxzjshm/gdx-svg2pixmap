@@ -37,9 +37,7 @@ allprojects {
     apply plugin: "eclipse"
     apply plugin: "idea"
 	apply plugin: 'maven'
-	apply plugin: 'maven-publish'
 	apply plugin: 'java'
-	apply plugin: 'com.jfrog.bintray'
 
     version = VERSION
     ext {
@@ -62,6 +60,9 @@ allprojects {
 
 project(":core") {
     apply plugin: "java"
+    apply plugin: 'maven-publish'
+    apply plugin: 'com.jfrog.bintray'
+    apply plugin: 'jacoco'
 
     dependencies {
         compile "com.badlogicgames.gdx:gdx:$gdxVersion"
@@ -106,6 +107,8 @@ project(":test-libgdx:native"){
 }
 
 project(":test-libgdx:headless"){
+    apply plugin: 'jacoco'
+
     dependencies {
         compile project(':test-libgdx:native')
         compile "com.badlogicgames.gdx:gdx-backend-headless:$gdxVersion"
@@ -129,6 +132,28 @@ project(":test-libgdx:gwt"){
         compile "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion:sources"
     }
+}
+
+apply plugin: 'jacoco'
+
+task codeCoverageReport(type: JacocoReport) {
+    executionData fileTree(project.rootDir.absolutePath).include("**/build/jacoco/*.exec")
+
+    subprojects.each {
+        sourceSets it.sourceSets.main
+    }
+
+    reports {
+        xml.enabled true
+        xml.destination file("${buildDir}/reports/jacoco/report.xml")
+        html.enabled true
+        html.destination file("${buildDir}/reports/jacoco/report.html")
+        csv.enabled false
+    }
+}
+
+codeCoverageReport.dependsOn {
+    subprojects*.test
 }
 
 tasks.eclipse.doLast {
